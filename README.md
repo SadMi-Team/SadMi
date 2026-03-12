@@ -85,3 +85,8 @@ Abaixo estão exemplos dos principais fluxos de interação entre os atores (Adm
 * **UC04 - Monitoramento via Dashboard:**
   * **Ator:** Cliente.
   * **Descrição:** O Cliente acessa a página inicial da SPA e visualiza gráficos atualizados em tempo real que consolidam a eficiência geral do parque fabril (OEE) e destacam máquinas com anomalias registradas no último turno.
+
+ ## Diagrama C4
+ <img width="617" height="1158" alt="image" src="https://github.com/user-attachments/assets/8fddd95e-a893-47d6-bfb6-a33200501227" />
+
+
