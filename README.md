@@ -17,6 +17,8 @@ As máquinas poderão enviar periodicamente relatórios de ciclos de produção 
 - Consumo de matéria-prima e energia.
 - Observações de anomalias.
 
+---
+
 ## Stack Tecnológico e Infraestrutura
 
 A arquitetura explora tecnologias modernas para garantir alta disponibilidade e desempenho tanto no lado do cliente (Client-side) quanto no servidor (Server-side).
@@ -37,3 +39,49 @@ Para sustentar o ciclo de vida da aplicação, o ecossistema conta com as seguin
 * **Documentação de API:** O contrato da API REST é documentado interativamente via **Swagger** (OpenAPI), garantindo padronização. O **Postman** é utilizado para simular o comportamento das máquinas e testar rotas.
 * **Testes Automatizados:** Utilização do framework Jest para aplicar o TDD (Test Driven Development) nas rotas críticas que envolvem os cálculos de telemetria e transações.
 * **Observabilidade:** Ferramentas de log (como Morgan ou Winston) integram o servidor Node.js para rastrear anomalias nos envios das máquinas, mapear erros e monitorar o status HTTP de todas as requisições.
+
+---
+
+## Requisitos do Sistema
+
+### Requisitos Funcionais (RF)
+| ID | Descrição |
+| :--- | :--- |
+| **RF01** | O sistema deve possuir um módulo de autenticação (login) diferenciado para Administradores e Clientes. |
+| **RF02** | O sistema deve permitir que usuários com perfil de Administrador cadastrem, editem e gerenciem as contas dos Clientes. |
+| **RF03** | O sistema deve permitir que o Cliente cadastre e gerencie as máquinas do seu próprio parque fabril. |
+| **RF04** | O sistema deve gerar e fornecer um token de comunicação único e exclusivo no momento do cadastro de cada máquina. |
+| **RF05** | O sistema deve disponibilizar um endpoint (API REST) para receber relatórios de ciclos de produção das máquinas. |
+| **RF06** | O sistema deve registrar, para cada ciclo de produção enviado pela máquina: desempenho/quantidade de peças, identificação do operador, tipo de peça, consumo (matéria-prima e energia) e anomalias. |
+| **RF07** | O sistema deve exibir, na página principal do Cliente, um painel (dashboard) com gráficos sobre o desempenho geral de todas as máquinas cadastradas. |
+| **RF08** | O sistema deve exibir, na página específica de cada máquina, um gráfico detalhado com o desempenho individual do equipamento. |
+
+### Requisitos Não Funcionais (RNF)
+| ID | Categoria | Descrição |
+| :--- | :--- | :--- |
+| **RNF01** | Interface | A interface do usuário deve ser construída como uma SPA utilizando React para garantir alta reatividade. |
+| **RNF02** | Back-end | A API REST deve ser desenvolvida em Node.js com Express, utilizando arquitetura não bloqueante. |
+| **RNF03** | Banco de Dados | O armazenamento deve ser feito em PostgreSQL para garantir a integridade das transações e hierarquias. |
+| **RNF04** | Segurança | O endpoint de ingestão de telemetria só deve aceitar requisições que contenham o token válido da máquina. |
+| **RNF05** | Testes | As rotas críticas (cálculos e transações) devem ser cobertas por testes automatizados em Jest (padrão TDD). |
+| **RNF06** | Documentação | O contrato da API REST deve ser documentado de forma interativa utilizando OpenAPI (Swagger). |
+| **RNF07** | Observabilidade | Integração de ferramentas de log (Morgan/Winston) no Node.js para rastrear requisições e anomalias. |
+| **RNF08** | Infraestrutura | O versionamento deve ser via Git, com CI/CD configurada no GitHub Actions. |
+
+---
+
+## Casos de Uso Principais
+
+Abaixo estão exemplos dos principais fluxos de interação entre os atores (Administrador, Cliente e Máquina) e o sistema:
+
+* **UC01 - Gerenciar Clientes:** * **Ator:** Administrador.
+  * **Descrição:** O Administrador faz login no sistema e acessa o painel de controle para cadastrar um novo Cliente (fábrica), definindo suas credenciais de acesso e informações de faturamento.
+* **UC02 - Provisionar Nova Máquina:**
+  * **Ator:** Cliente.
+  * **Descrição:** O Cliente acessa seu ambiente, preenche os dados de um novo equipamento (ex: Torno CNC, Injetora) e o sistema retorna um `Bearer Token` exclusivo que será configurado no CLP/computador dessa máquina para autorizar o envio de dados.
+* **UC03 - Ingestão de Telemetria:**
+  * **Ator:** Máquina (Sistema Externo).
+  * **Descrição:** A máquina finaliza um ciclo de produção e faz uma requisição POST automática para a API do SadMi, enviando o payload com a quantidade de peças, refugo e consumo de energia, autenticando-se via token.
+* **UC04 - Monitoramento via Dashboard:**
+  * **Ator:** Cliente.
+  * **Descrição:** O Cliente acessa a página inicial da SPA e visualiza gráficos atualizados em tempo real que consolidam a eficiência geral do parque fabril (OEE) e destacam máquinas com anomalias registradas no último turno.
