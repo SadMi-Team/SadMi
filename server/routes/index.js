@@ -1,7 +1,10 @@
-var express = require("express");
+import express from "express";
+import logger from "../logger.js";
+
 var router = express.Router();
 
 router.get("/", (req, res) => {
+  logger.info("Alguém acessou a rota principal!");
   res.json({ mensagem: "Requisição GET recebida" });
 });
 
@@ -30,4 +33,4 @@ router.delete("/:id", (req, res) => {
   res.json({ mensagem: `Requisição DELETE recebida para a ID ${id}` });
 });
 
-module.exports = router;
+export default router;
