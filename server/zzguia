@@ -1,0 +1,10 @@
+GET	    Lê dados	                GET /usuarios
+POST	Cria um novo recurso	    POST /usuarios
+PUT	    Atualiza um recurso inteiro	PUT /usuarios/:id
+PATCH	Atualiza parcialmente	    PATCH /usuarios/:id
+DELETE	Remove um recurso	        DELETE /usuarios/:id
+
+
+
+NPM START -- modo "produção" não Atualiza o server qnd atualizado os arquivos
+NPM RUN DEV -- modo "testes" Atualiza o server qnd atualizado os arquivos, não precisa reiniciar
