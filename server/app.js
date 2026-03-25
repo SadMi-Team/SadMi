@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import morgan from "morgan";
+import "dotenv/config";
 
 import logger from "./logger.js";
 import "./db.js";
@@ -15,8 +16,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-const morganFormat =
-  ":method :url :status :res[content-length] - :response-time ms";
+const morganFormat = ":method :url :status :res[content-length] - :response-time ms";
 app.use(
   morgan(morganFormat, {
     stream: {
@@ -34,15 +34,13 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
 
-app.use((req, res, next) => {
+app.use((req, res, _next) => {
   res.status(404).json({ error: "Rota não encontrada" });
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   logger.error(err.stack || err.message);
-  res
-    .status(err.status || 500)
-    .json({ error: err.message || "Erro interno no servidor" });
+  res.status(err.status || 500).json({ error: err.message || "Erro interno no servidor" });
 });
 
 export default app;
