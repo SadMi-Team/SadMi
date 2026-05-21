@@ -14,6 +14,22 @@ function getJwtSecret() {
   return secret;
 }
 
+function getTokenCookieBaseOptions() {
+  const isProduction = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+  };
+}
+
+function getTokenCookieOptions() {
+  return {
+    ...getTokenCookieBaseOptions(),
+    maxAge: 8 * 60 * 60 * 1000,
+  };
+}
+
 async function findUserByEmail(email) {
   const adminResult = await query(
     "SELECT id, nome, email, senha_hash, ativo FROM administradores WHERE email = $1 LIMIT 1",
@@ -75,10 +91,9 @@ router.post("/login", async (req, res, next) => {
       { expiresIn },
     );
 
+    res.cookie("token", token, getTokenCookieOptions());
+
     return res.status(200).json({
-      token,
-      token_type: "Bearer",
-      expires_in: expiresIn,
       usuario: {
         id: user.id,
         nome: user.nome,
@@ -89,6 +104,11 @@ router.post("/login", async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+router.post("/logout", (_req, res) => {
+  res.clearCookie("token", getTokenCookieBaseOptions());
+  return res.status(200).json({ message: "Logout realizado com sucesso" });
 });
 
 export default router;
