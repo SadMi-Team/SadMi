@@ -1,13 +1,5 @@
 import jwt from "jsonwebtoken";
 
-function getTokenFromHeader(authorizationHeader = "") {
-  const [scheme, token] = authorizationHeader.split(" ");
-  if (scheme !== "Bearer" || !token) {
-    return null;
-  }
-  return token;
-}
-
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -18,8 +10,7 @@ function getJwtSecret() {
 
 export function authenticateJwt(req, res, next) {
   try {
-    const authorization = req.headers.authorization;
-    const token = getTokenFromHeader(authorization);
+    const token = req.cookies?.token;
 
     if (!token) {
       return res.status(401).json({ error: "Token ausente ou inválido." });
