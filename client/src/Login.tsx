@@ -81,11 +81,10 @@ function App() {
   return (
     <Flex
       w="100%"
-      h="full"
+      h="95vh"
       justify="center"
       align="center"
       direction="column"
-      marginTop="40"
     >
       <Toaster />
       <Box>
