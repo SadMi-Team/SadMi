@@ -9,7 +9,7 @@ import axios from "axios";
 
 interface LoginData {
   email: string;
-  password: string;
+  senha: string;
 }
 
 const loginRequest = (data: LoginData) =>
@@ -30,8 +30,8 @@ function App() {
     onError: (error) => {
       const data = error.response?.data;
 
-      const msgTitle = data?.erro?.message || "Erro desconhecido";
-      const msgDesc = data?.erro?.detailedMessage || "Descrição desconhecida";
+      const msgTitle = data?.erro?.message || "Erro";
+      const msgDesc = data?.error || "Descrição desconhecida";
 
       toaster.error({
         title: msgTitle,
@@ -59,9 +59,9 @@ function App() {
       return;
     }
 
-    const data = {
+    const data : LoginData = {
       email: username,
-      password: password,
+      senha: password,
     };
 
     login.mutate(data);
@@ -69,7 +69,12 @@ function App() {
 
   useEffect(() => {
     if (login.data) {
-      navigate("/");
+      if(login.data.data.usuario.perfil == "administrador") {
+        navigate("/admin");
+      }else {
+        navigate("/cliente");
+      }
+      
     }
   }, [login.data, navigate]);
 

@@ -8,13 +8,18 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 
 const sadmiApi = new QueryClient();
 
-import App from "@/App.tsx";
+import Login from "@/Login.tsx";
+import Admin from "@/Admin.tsx";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <App />,
+    path: "/login",
+    element: <Login />,
   },
+  {
+    path: "/admin",
+    element: <Admin />
+  }
 ]);
 
 createRoot(document.getElementById("root")!).render(
