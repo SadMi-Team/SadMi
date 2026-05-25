@@ -7,6 +7,26 @@ import { useNavigate } from "react-router";
 
 import axios from "axios";
 
+interface ApiError {
+ response?: {
+    data?: ApiReturn;
+ };
+}
+
+interface ApiReturn {
+ erro?: string | ApiReturnMessage[];
+ error?: string;
+}
+
+interface ApiReturnMessage {
+ message: string;
+}
+
+interface LoginData {
+  email: string;
+  senha: string;
+}
+
 interface LoginData {
   email: string;
   senha: string;
@@ -27,10 +47,16 @@ function App() {
 
   const login = useMutation({
     mutationFn: loginRequest,
-    onError: (error) => {
+    onError: (error : ApiError) => {
       const data = error.response?.data;
 
-      const msgTitle = data?.erro?.message || "Erro";
+      let msgTitle = "Erro"; 
+
+      if (typeof data?.erro === "string") {
+        msgTitle = data.erro; 
+      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
+        msgTitle = data.erro[0].message; 
+      }
       const msgDesc = data?.error || "Descrição desconhecida";
 
       toaster.error({
