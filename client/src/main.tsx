@@ -3,20 +3,31 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import { Provider } from "@/components/ui/provider";
 
-import "@/index.css";
-import App from "@/App.tsx";
+import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+//import VerifyAccess from "./utils/verifyAccess";
+
+const sadmiApi = new QueryClient();
+
+import Login from "@/Login.tsx";
+import Admin from "@/Admin.tsx";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <App />,
+    path: "/login",
+    element: <Login />,
   },
+  {
+    path: "/admin",
+    element: <Admin />
+  }
 ]);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Provider>
-      <RouterProvider router={router} />
-    </Provider>
+    <QueryClientProvider client={sadmiApi}>
+      <Provider>
+        <RouterProvider router={router} />
+      </Provider>
+    </QueryClientProvider>
   </StrictMode>,
 );
