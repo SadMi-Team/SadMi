@@ -10,6 +10,8 @@ import logger from "./logger.js";
 import "./db.js";
 import indexRouter from "./routes/index.js";
 import usersRouter from "./routes/users.js";
+import authRouter from "./routes/auth.js";
+import clientesRouter from "./routes/clientes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,7 +27,12 @@ app.use(
   }),
 );
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
@@ -33,6 +40,8 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+app.use("/auth", authRouter);
+app.use("/clientes", clientesRouter);
 
 app.use((req, res, _next) => {
   res.status(404).json({ error: "Rota não encontrada" });
