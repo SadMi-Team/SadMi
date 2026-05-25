@@ -7,9 +7,11 @@
     "shared"
   ],
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "shx": "^0.4.0"
   },
   "scripts": {
+    "predev": "shx cp ./.env ./server/ && shx cp ./.env ./client/",
     "dev": "concurrently -c \"cyan,magenta\" \"npm run dev -w client\" \"npm run dev -w server\""
   }
 }
