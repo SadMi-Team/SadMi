@@ -17,7 +17,6 @@ function App() {
   const logout = useMutation({
     mutationFn: logoutRequest,
     onSuccess: (success) => {
-      console.log(success);
       navigate("/login");
     },
     onError: (error) => {
