@@ -5,6 +5,26 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 
+interface ApiError {
+ response?: {
+    data?: ApiReturn;
+ };
+}
+
+interface ApiReturn {
+ erro?: string | ApiReturnMessage[];
+ error?: string;
+}
+
+interface ApiReturnMessage {
+ message: string;
+}
+
+interface AddCliProps {
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 const logoutRequest = () =>
   axios.post(import.meta.env.VITE_API_URL + "/auth/logout", {
     withCredentials: true,
@@ -14,24 +34,31 @@ function App() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate();
 
-  const logout = useMutation({
-    mutationFn: logoutRequest,
-    onSuccess: (success) => {
-      navigate("/login");
-    },
-    onError: (error) => {
-      console.log(error)
-      const data = error.response?.data;
+const logout = useMutation({
+  mutationFn: logoutRequest,
+  onSuccess: (success) => {
+    console.log(success);
+    navigate("/login");
+  },
+  onError: (error: ApiError) => {
+    console.log(error);
+    const data = error.response?.data;
 
-      const msgTitle = data?.erro?.message || "Erro";
-      const msgDesc = data?.error || "Descrição desconhecida";
+    let msgTitle = "Erro"; 
+    
+    if (typeof data?.erro === "string") {
+      msgTitle = data.erro; 
+    } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
+      msgTitle = data.erro[0].message; 
+    }
+    const msgDesc = data?.error || "Descrição desconhecida";
 
-      toaster.error({
-        title: msgTitle,
-        description: msgDesc,
-      });
-    },
-  });
+    toaster.error({
+      title: msgTitle,
+      description: msgDesc,
+    });
+  },
+});
 
   const items = [
     { id: 1, name: "Laptop", category: "Electronics", price: 999.99 },
@@ -104,10 +131,10 @@ function CCard(){
   )
 }
 
-function AddCli({ open, setOpen }){
+function AddCli({ open, setOpen } : AddCliProps){
 
   return (
-    <Dialog.Root lazyMount open={open} onOpenChange={(e) => setOpen(e.open)}>
+    <Dialog.Root lazyMount open={open} onOpenChange={(e : {open: boolean}) => setOpen(e.open)}>
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
