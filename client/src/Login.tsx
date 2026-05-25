@@ -138,7 +138,7 @@ function App() {
             <Field.Label>Email</Field.Label>
             <Input
               value={username}
-              onChange={(e: string) => setUsername(e.target.value)}
+              onChange={(e : { target: { value : string}}) => setUsername(e.target.value)}
               placeholder="Coloque seu e-mail"
             />
             <Field.ErrorText>Favor preencher o campo de email</Field.ErrorText>
@@ -148,7 +148,7 @@ function App() {
             <PasswordInput
               placeholder="Coloque sua senha"
               value={password}
-              onChange={(e: string) => setPassword(e.target.value)}
+              onChange={(e : { target: { value : string}}) => setPassword(e.target.value)}
             />
             <Field.ErrorText>Favor preencher o campo de senha</Field.ErrorText>
           </Field.Root>
