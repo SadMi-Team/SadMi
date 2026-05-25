@@ -4,7 +4,22 @@ PUT	    Atualiza um recurso inteiro	PUT /usuarios/:id
 PATCH	Atualiza parcialmente	    PATCH /usuarios/:id
 DELETE	Remove um recurso	        DELETE /usuarios/:id
 
+=== CRUD /clientes (somente administrador autenticado via cookie JWT) ===
 
+POST   /clientes              { nome, email, senha, ativo? }  -> 201
+GET    /clientes              lista todos                     -> 200
+GET    /clientes/:id          um cliente                      -> 200 | 404
+PUT    /clientes/:id          { nome, email, ativo, senha? }  -> 200 | 404
+PATCH  /clientes/:id          campos parciais                 -> 200 | 404
+DELETE /clientes/:id                                          -> 204 | 404
+
+Sem cookie de admin: 401 (sem token) ou 403 (perfil cliente).
+Teste rápido (PowerShell, servidor em npm run dev):
+
+  $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+  Invoke-RestMethod -Uri http://localhost:3000/auth/login -Method POST -ContentType application/json `
+    -Body '{"email":"admin@teste.com","senha":"123456"}' -WebSession $s
+  Invoke-RestMethod -Uri http://localhost:3000/clientes -WebSession $s
 
 NPM START -- modo "produção" não Atualiza o server qnd atualizado os arquivos
 NPM RUN DEV -- modo "testes" Atualiza o server qnd atualizado os arquivos, não precisa reiniciar
