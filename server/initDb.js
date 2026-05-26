@@ -15,7 +15,7 @@ const { Pool } = pg;
  * @returns {Object} - {databaseName, adminUrl}
  */
 function getDatabaseInfo() {
-  const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:root@localhost:5432/gestorDinheiro";
+  const databaseUrl = process.env.DATABASE_URL || "postgresql://postgres:root@localhost:5432/sadmi";
   const databaseName = databaseUrl.split("/").pop().split("?")[0];
   
   // Create admin connection URL (connecting to 'postgres' database instead)
