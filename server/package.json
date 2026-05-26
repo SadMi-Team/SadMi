@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node ./bin/www",
     "dev": "nodemon ./bin/www",
+    "pretest": "node ./scripts/ensure-env.js",
     "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js",
     "test:unit": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js clienteValidation.test.js",
     "test:watch": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js --watch",
