@@ -1,7 +1,6 @@
 import {
   Flex,
   Button,
-  Card,
   Table,
   CloseButton,
   Dialog,
@@ -14,7 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Toaster, toaster } from "@/components/ui/toaster";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";  
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import {
@@ -27,6 +26,7 @@ import {
 } from "react-icons/lu";
 
 import api from "@/utils/axios";
+import CCard from "./components/CCard";
 
 interface ApiError {
   response?: {
@@ -401,7 +401,7 @@ function App() {
             onClick={() => logout.mutate()}
           >
             <LuLogOut />
-            <Text>Logout</Text>
+            <Text>Sair</Text>
           </Button>
         </Flex>
       </Flex>
@@ -557,35 +557,6 @@ function App() {
         delteCli={delteCli}
       />
     </Flex>
-  );
-}
-
-function CCard({ color, title, icon, value, subtitle }: CCards) {
-  return (
-    <Card.Root
-      size="sm"
-      w={{ base: "100%", sm: "100%", md: "30%" }}
-      shadow="md"
-    >
-      <Card.Header>
-        <Flex justify="space-between" align="center">
-          <Text textStyle="sm" fontWeight="semibold">
-            {title}
-          </Text>
-          <Flex rounded="md" bg={color + ".muted"} padding="4px" align="center">
-            {icon}
-          </Flex>
-        </Flex>
-      </Card.Header>
-      <Card.Body>
-        <Text textStyle="3xl" fontWeight="bold" color={color}>
-          {value}
-        </Text>
-        <Text textStyle="xs" color="fg.muted">
-          {subtitle}
-        </Text>
-      </Card.Body>
-    </Card.Root>
   );
 }
 
