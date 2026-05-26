@@ -5,7 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 
-import api from "@/utils/axios";
+import axios from "axios";
 
 interface ApiError {
   response?: {
@@ -33,7 +33,7 @@ interface LoginData {
 }
 
 const loginRequest = (data: LoginData) =>
-  api
+  axios
     .post(import.meta.env.VITE_API_URL + "/auth/login", data, {
       withCredentials: true,
     })
@@ -50,7 +50,6 @@ function App() {
   const login = useMutation({
     mutationFn: loginRequest,
     onSuccess: (success) => {
-      console.log(success);
       if (success.usuario.perfil == "administrador") {
         navigate("/admin");
       } else {
