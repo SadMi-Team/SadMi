@@ -12,6 +12,7 @@
   },
   "scripts": {
     "predev": "shx cp ./.env ./server/ && shx cp ./.env ./client/",
-    "dev": "concurrently -c \"cyan,magenta\" \"npm run dev -w client\" \"npm run dev -w server\""
+    "dev": "concurrently -c \"cyan,magenta\" \"npm run dev -w client\" \"npm run dev -w server\"",
+    "test": "npm run test -w server"
   }
 }
