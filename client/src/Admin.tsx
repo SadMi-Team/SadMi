@@ -14,8 +14,7 @@ import {
 } from "@chakra-ui/react";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Toaster, toaster } from "@/components/ui/toaster";
-import axios from "axios";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import {
@@ -26,6 +25,8 @@ import {
   LuBuilding2,
   LuTrendingUp,
 } from "react-icons/lu";
+
+import api from "@/utils/axios";
 
 interface ApiError {
   response?: {
@@ -46,9 +47,17 @@ interface ModCliProps {
   open: boolean;
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   title_modcli: string;
+  setTitleCli: React.Dispatch<React.SetStateAction<string>>;
   nome_cli: string;
+  setNomeCli: React.Dispatch<React.SetStateAction<string>>;
   email_cli: string;
+  setEmailCli: React.Dispatch<React.SetStateAction<string>>;
   cnpj_cli: string;
+  setCnpjCli: React.Dispatch<React.SetStateAction<string>>;
+  status_cli: boolean;
+  setStatusCli: React.Dispatch<React.SetStateAction<boolean>>;
+  senha_cli: string;
+  setSenhaCli: React.Dispatch<React.SetStateAction<string>>;
 }
 
 interface CCards {
@@ -59,13 +68,55 @@ interface CCards {
   subtitle: string;
 }
 
+interface CamposCliente {
+  id: number;
+  nome: string;
+  email: string;
+  ativo: boolean;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+interface CamposDelete {
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  idCli: number;
+  nomeCli: string;
+}
+
 const logoutRequest = () =>
-  axios.post(import.meta.env.VITE_API_URL + "/auth/logout", {
-    withCredentials: true,
-  });
+  api
+    .post(import.meta.env.VITE_API_URL + "/auth/logout", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const clientesRequest = () =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/clientes", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const deleteCLiente = (id: number) =>
+  api
+    .delete(import.meta.env.VITE_API_URL + "/clientes/" + id, {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
 
 function App() {
   const [open, setOpen] = useState(false);
+  const [title_cli, setTitleCli] = useState("");
+  const [nome_cli, setNomeCli] = useState("");
+  const [email_cli, setEmailCli] = useState("");
+  const [cnpj_cli, setCnpjCli] = useState("");
+  const [status_cli, setStatusCli] = useState(true);
+  const [senha_cli, setSenhaCli] = useState("");
+
+  const [openDel, setOpenDel] = useState(false);
+  const [idCli, setidCli] = useState(0);
+
   const navigate = useNavigate();
 
   const logout = useMutation({
@@ -94,21 +145,53 @@ function App() {
     },
   });
 
-  const items = [
-    { id: 1, name: "Laptop", category: "Electronics", price: 999.99 },
-    { id: 2, name: "Coffee Maker", category: "Home Appliances", price: 49.99 },
-    { id: 3, name: "Desk Chair", category: "Furniture", price: 150.0 },
-    { id: 4, name: "Smartphone", category: "Electronics", price: 799.99 },
-    { id: 5, name: "Headphones", category: "Accessories", price: 199.99 },
-  ];
+  const deleteCLi = useMutation({
+    mutationFn: deleteCLiente,
+    onSuccess: (success) => {
+      console.log(success);
+      toaster.success({
+        title: success.data,
+        description: success.data.message,
+      });
+    },
+    onError: (error: ApiError) => {
+      console.log(error);
+      const data = error.response?.data;
+
+      let msgTitle = "Erro";
+
+      if (typeof data?.erro === "string") {
+        msgTitle = data.erro;
+      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
+        msgTitle = data.erro[0].message;
+      }
+      const msgDesc = data?.error || "Descrição desconhecida";
+
+      toaster.error({
+        title: msgTitle,
+        description: msgDesc,
+      });
+    },
+  });
+
+  const clientesQuery = useQuery({
+    queryKey: ["clientes"],
+    queryFn: clientesRequest,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const cards: CCards[] = [
     {
       color: "blue",
       title: "Total de Clientes",
       icon: <LuUsers />,
-      value: "3",
-      subtitle: "2 ativos",
+      value: clientesQuery.isLoading ? 0 : clientesQuery.data.length,
+      subtitle: clientesQuery.isLoading
+        ? "0"
+        : String(
+            clientesQuery.data.filter((cliente: CamposCliente) => cliente.ativo)
+              .length,
+          ) + " Ativos",
     },
     {
       color: "green",
@@ -125,6 +208,46 @@ function App() {
       subtitle: "Média global",
     },
   ];
+
+  function openCliMod(
+    mode: string,
+    cliente: CamposCliente = {
+      id: 0,
+      nome: "",
+      email: "",
+      ativo: true,
+      criado_em: "",
+      atualizado_em: "",
+    },
+  ) {
+    if (mode == "MOD") {
+      setOpen(true);
+      setTitleCli("Modificar Cliente");
+      setNomeCli(cliente.nome);
+      setEmailCli(cliente.email);
+      setCnpjCli("não disponivel");
+      setStatusCli(cliente.ativo);
+      setSenhaCli("");
+    } else {
+      setOpen(true);
+      setTitleCli("Adicionar Cliente");
+      setNomeCli("");
+      setEmailCli("");
+      setCnpjCli("");
+      setStatusCli(true);
+      setSenhaCli("");
+    }
+  }
+
+  function opendel(id: number, nome: string) {
+    setNomeCli(nome);
+    setidCli(id);
+    setOpenDel(true);
+  }
+  function delteCli(id: number) {
+    deleteCLi.mutate(id);
+  }
+
   return (
     <Flex w="100%" h="full" direction="column" justify="center" align="center">
       <Toaster />
@@ -132,7 +255,7 @@ function App() {
         w="100%"
         h="20"
         borderBottomWidth="1px"
-        bg="blue.fg"
+        bg="blue.solid"
         shadow="md"
         justify="center"
         align="center"
@@ -201,7 +324,7 @@ function App() {
               Cadastre e gerencie as contas de clientes do sistema
             </Text>
           </Flex>
-          <Button colorPalette="blue" onClick={() => setOpen(true)}>
+          <Button colorPalette="blue" onClick={() => openCliMod("NEW")}>
             + Novo Cliente
           </Button>
         </Flex>
@@ -227,37 +350,98 @@ function App() {
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {items.map((item) => (
-                  <Table.Row key={item.id}>
-                    <Table.Cell textAlign="start">{item.name}</Table.Cell>
-                    <Table.Cell textAlign="start">{item.category}</Table.Cell>
-                    <Table.Cell textAlign="start">{item.price}</Table.Cell>
-                    <Table.Cell textAlign="start">{item.price}</Table.Cell>
-                    <Table.Cell textAlign="start">{item.price}</Table.Cell>
-                    <Table.Cell textAlign="start">{item.price}</Table.Cell>
-                    <Table.Cell textAlign="center">
-                      <Flex gap="1">
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          onClick={() => setOpen(true)}
-                        >
-                          <LuNotebookPen color="blue" />
-                        </Button>
-                        <Button size="xs" variant="ghost">
-                          <LuTrash2 color="red" />
-                        </Button>
-                      </Flex>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
+                {clientesQuery.isLoading
+                  ? "Carregando..."
+                  : clientesQuery.data.map((cliente: CamposCliente) => (
+                      <Table.Row key={cliente.id}>
+                        <Table.Cell textAlign="start">
+                          {cliente.nome}
+                        </Table.Cell>
+                        <Table.Cell textAlign="start">
+                          {cliente.email}
+                        </Table.Cell>
+                        <Table.Cell textAlign="start">
+                          {"não disponivel"}
+                        </Table.Cell>
+                        <Table.Cell textAlign="start">
+                          {"não disponivel"}
+                        </Table.Cell>
+                        <Table.Cell textAlign="start">
+                          {cliente.ativo ? (
+                            <Flex
+                              bg="bg.success"
+                              rounded="md"
+                              padding="3px"
+                              align="center"
+                              justify="center"
+                              w="fit-content"
+                            >
+                              Ativo
+                            </Flex>
+                          ) : (
+                            <Flex
+                              bg="bg.muted"
+                              rounded="md"
+                              padding="3px"
+                              align="center"
+                              justify="center"
+                              w="fit-content"
+                            >
+                              Desativado
+                            </Flex>
+                          )}
+                        </Table.Cell>
+                        <Table.Cell textAlign="start">
+                          {cliente.criado_em}
+                        </Table.Cell>
+                        <Table.Cell textAlign="center">
+                          <Flex gap="1">
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => openCliMod("MOD", cliente)}
+                            >
+                              <LuNotebookPen color="blue" />
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => opendel(cliente.id, cliente.nome)}
+                            >
+                              <LuTrash2 color="red" />
+                            </Button>
+                          </Flex>
+                        </Table.Cell>
+                      </Table.Row>
+                    ))}
               </Table.Body>
             </Table.Root>
           </Table.ScrollArea>
         </Flex>
       </Flex>
 
-      <AddCli open={open} setOpen={setOpen} />
+      <AddCli
+        open={open}
+        setOpen={setOpen}
+        title_modcli={title_cli}
+        setTitleCli={setTitleCli}
+        nome_cli={nome_cli}
+        setNomeCli={setNomeCli}
+        email_cli={email_cli}
+        setEmailCli={setEmailCli}
+        cnpj_cli={cnpj_cli}
+        setCnpjCli={setCnpjCli}
+        status_cli={status_cli}
+        setStatusCli={setStatusCli}
+        senha_cli={senha_cli}
+        setSenhaCli={setSenhaCli}
+      />
+      <ConfirmaDeleta
+        open={openDel}
+        setOpen={setOpenDel}
+        nomeCli={nome_cli}
+        idCli={idCli}
+      />
     </Flex>
   );
 }
@@ -291,7 +475,21 @@ function CCard({ color, title, icon, value, subtitle }: CCards) {
   );
 }
 
-function AddCli({ open, setOpen }: ModCliProps) {
+function AddCli({
+  open,
+  setOpen,
+  title_modcli,
+  nome_cli,
+  setNomeCli,
+  email_cli,
+  setEmailCli,
+  cnpj_cli,
+  setCnpjCli,
+  status_cli,
+  setStatusCli,
+  senha_cli,
+  setSenhaCli,
+}: ModCliProps) {
   return (
     <Dialog.Root
       lazyMount
@@ -303,21 +501,39 @@ function AddCli({ open, setOpen }: ModCliProps) {
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>Adicionar Cliente</Dialog.Title>
+              <Dialog.Title>{title_modcli}</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
               <Flex direction="column" gap="2">
                 <Field.Root>
                   <Field.Label>Nome Cliente</Field.Label>
-                  <Input placeholder="Nome Exemplo" />
+                  <Input
+                    placeholder="Nome Exemplo"
+                    value={nome_cli}
+                    onChange={(e: { target: { value: string } }) =>
+                      setNomeCli(e.target.value)
+                    }
+                  />
                 </Field.Root>
                 <Field.Root>
                   <Field.Label>Email</Field.Label>
-                  <Input placeholder="me@example.com" />
+                  <Input
+                    placeholder="me@example.com"
+                    value={email_cli}
+                    onChange={(e: { target: { value: string } }) =>
+                      setEmailCli(e.target.value)
+                    }
+                  />
                 </Field.Root>
                 <Field.Root>
                   <Field.Label>CNPJ</Field.Label>
-                  <Input placeholder="XX.XXX.XXX/0001-XX" />
+                  <Input
+                    placeholder="XX.XXX.XXX/0001-XX"
+                    value={cnpj_cli}
+                    onChange={(e: { target: { value: string } }) =>
+                      setCnpjCli(e.target.value)
+                    }
+                  />
                 </Field.Root>
                 <Field.Root>
                   <Field.Label>Status</Field.Label>
@@ -325,6 +541,8 @@ function AddCli({ open, setOpen }: ModCliProps) {
                     defaultChecked
                     paddingLeft="10px"
                     colorPalette="blue"
+                    checked={status_cli}
+                    onCheckedChange={(e) => setStatusCli(!!e.checked)}
                   >
                     <Checkbox.HiddenInput />
                     <Checkbox.Control />
@@ -333,7 +551,12 @@ function AddCli({ open, setOpen }: ModCliProps) {
                 </Field.Root>
                 <Field.Root>
                   <Field.Label>Senha</Field.Label>
-                  <PasswordInput />
+                  <PasswordInput
+                    value={senha_cli}
+                    onChange={(e: { target: { value: string } }) =>
+                      setSenhaCli(e.target.value)
+                    }
+                  />
                 </Field.Root>
               </Flex>
             </Dialog.Body>
@@ -342,6 +565,42 @@ function AddCli({ open, setOpen }: ModCliProps) {
                 <Button variant="outline">Cancelar</Button>
               </Dialog.ActionTrigger>
               <Button>Salvar</Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
+  );
+}
+
+function ConfirmaDeleta({ open, setOpen, idCli, nomeCli }: CamposDelete) {
+  return (
+    <Dialog.Root
+      lazyMount
+      open={open}
+      onOpenChange={(e: { open: boolean }) => setOpen(e.open)}
+    >
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>
+                Você deseja mesmo deletar o cliente "{idCli + "- " + nomeCli}" ?
+              </Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              Clique no botão "Confirmar" para excluir o cliente, essa ação não
+              pode ser desfeita.
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Dialog.ActionTrigger asChild>
+                <Button variant="outline">Cancelar</Button>
+              </Dialog.ActionTrigger>
+              <Button colorPalette="red">Confirmar</Button>
             </Dialog.Footer>
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
