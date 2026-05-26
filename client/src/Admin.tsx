@@ -52,8 +52,6 @@ interface ModCliProps {
   setNomeCli: React.Dispatch<React.SetStateAction<string>>;
   email_cli: string;
   setEmailCli: React.Dispatch<React.SetStateAction<string>>;
-  cnpj_cli: string;
-  setCnpjCli: React.Dispatch<React.SetStateAction<string>>;
   status_cli: boolean;
   setStatusCli: React.Dispatch<React.SetStateAction<boolean>>;
   senha_cli: string;
@@ -82,6 +80,7 @@ interface CamposDelete {
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   idCli: number;
   nomeCli: string;
+  delteCli: (id: number) => void;
 }
 
 const logoutRequest = () =>
@@ -110,7 +109,6 @@ function App() {
   const [title_cli, setTitleCli] = useState("");
   const [nome_cli, setNomeCli] = useState("");
   const [email_cli, setEmailCli] = useState("");
-  const [cnpj_cli, setCnpjCli] = useState("");
   const [status_cli, setStatusCli] = useState(true);
   const [senha_cli, setSenhaCli] = useState("");
 
@@ -118,6 +116,12 @@ function App() {
   const [idCli, setidCli] = useState(0);
 
   const navigate = useNavigate();
+
+  const clientesQuery = useQuery({
+    queryKey: ["clientes"],
+    queryFn: clientesRequest,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const logout = useMutation({
     mutationFn: logoutRequest,
@@ -148,11 +152,11 @@ function App() {
   const deleteCLi = useMutation({
     mutationFn: deleteCLiente,
     onSuccess: (success) => {
-      console.log(success);
       toaster.success({
-        title: success.data,
-        description: success.data.message,
+        title: success.data || "Sucesso",
+        description: success.data?.message || "Deletado com sucesso",
       });
+      clientesQuery.refetch();
     },
     onError: (error: ApiError) => {
       console.log(error);
@@ -172,12 +176,6 @@ function App() {
         description: msgDesc,
       });
     },
-  });
-
-  const clientesQuery = useQuery({
-    queryKey: ["clientes"],
-    queryFn: clientesRequest,
-    staleTime: 5 * 60 * 1000,
   });
 
   const cards: CCards[] = [
@@ -225,7 +223,6 @@ function App() {
       setTitleCli("Modificar Cliente");
       setNomeCli(cliente.nome);
       setEmailCli(cliente.email);
-      setCnpjCli("não disponivel");
       setStatusCli(cliente.ativo);
       setSenhaCli("");
     } else {
@@ -233,7 +230,6 @@ function App() {
       setTitleCli("Adicionar Cliente");
       setNomeCli("");
       setEmailCli("");
-      setCnpjCli("");
       setStatusCli(true);
       setSenhaCli("");
     }
@@ -246,6 +242,7 @@ function App() {
   }
   function delteCli(id: number) {
     deleteCLi.mutate(id);
+    setOpenDel(false);
   }
 
   return (
@@ -303,8 +300,8 @@ function App() {
         direction={{ base: "column", md: "row" }}
         gap="2"
       >
-        {cards.map((card: CCards) => (
-          <CCard {...card} />
+        {cards.map((card: CCards, index: number) => (
+          <CCard {...card} key={index} />
         ))}
       </Flex>
       <Flex
@@ -342,7 +339,6 @@ function App() {
                 <Table.Row>
                   <Table.ColumnHeader>Cliente</Table.ColumnHeader>
                   <Table.ColumnHeader>Email</Table.ColumnHeader>
-                  <Table.ColumnHeader>CNPJ</Table.ColumnHeader>
                   <Table.ColumnHeader>Maquinas</Table.ColumnHeader>
                   <Table.ColumnHeader>Status</Table.ColumnHeader>
                   <Table.ColumnHeader>Cadastro</Table.ColumnHeader>
@@ -359,9 +355,6 @@ function App() {
                         </Table.Cell>
                         <Table.Cell textAlign="start">
                           {cliente.email}
-                        </Table.Cell>
-                        <Table.Cell textAlign="start">
-                          {"não disponivel"}
                         </Table.Cell>
                         <Table.Cell textAlign="start">
                           {"não disponivel"}
@@ -429,8 +422,6 @@ function App() {
         setNomeCli={setNomeCli}
         email_cli={email_cli}
         setEmailCli={setEmailCli}
-        cnpj_cli={cnpj_cli}
-        setCnpjCli={setCnpjCli}
         status_cli={status_cli}
         setStatusCli={setStatusCli}
         senha_cli={senha_cli}
@@ -441,6 +432,7 @@ function App() {
         setOpen={setOpenDel}
         nomeCli={nome_cli}
         idCli={idCli}
+        delteCli={delteCli}
       />
     </Flex>
   );
@@ -483,8 +475,6 @@ function AddCli({
   setNomeCli,
   email_cli,
   setEmailCli,
-  cnpj_cli,
-  setCnpjCli,
   status_cli,
   setStatusCli,
   senha_cli,
@@ -522,16 +512,6 @@ function AddCli({
                     value={email_cli}
                     onChange={(e: { target: { value: string } }) =>
                       setEmailCli(e.target.value)
-                    }
-                  />
-                </Field.Root>
-                <Field.Root>
-                  <Field.Label>CNPJ</Field.Label>
-                  <Input
-                    placeholder="XX.XXX.XXX/0001-XX"
-                    value={cnpj_cli}
-                    onChange={(e: { target: { value: string } }) =>
-                      setCnpjCli(e.target.value)
                     }
                   />
                 </Field.Root>
@@ -576,7 +556,13 @@ function AddCli({
   );
 }
 
-function ConfirmaDeleta({ open, setOpen, idCli, nomeCli }: CamposDelete) {
+function ConfirmaDeleta({
+  open,
+  setOpen,
+  idCli,
+  nomeCli,
+  delteCli,
+}: CamposDelete) {
   return (
     <Dialog.Root
       lazyMount
@@ -600,7 +586,9 @@ function ConfirmaDeleta({ open, setOpen, idCli, nomeCli }: CamposDelete) {
               <Dialog.ActionTrigger asChild>
                 <Button variant="outline">Cancelar</Button>
               </Dialog.ActionTrigger>
-              <Button colorPalette="red">Confirmar</Button>
+              <Button colorPalette="red" onClick={() => delteCli(idCli)}>
+                Confirmar
+              </Button>
             </Dialog.Footer>
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
