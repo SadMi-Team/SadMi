@@ -56,6 +56,15 @@ interface ModCliProps {
   setStatusCli: React.Dispatch<React.SetStateAction<boolean>>;
   senha_cli: string;
   setSenhaCli: React.Dispatch<React.SetStateAction<string>>;
+  errorName: boolean;
+  setErrorName: React.Dispatch<React.SetStateAction<boolean>>;
+  errorMail: boolean;
+  setErrorMail: React.Dispatch<React.SetStateAction<boolean>>;
+  errorSenha: boolean;
+  setErrorSenha: React.Dispatch<React.SetStateAction<boolean>>;
+  adicionar: (data: clienteCampos) => void;
+  modificar: (data: clienteCampos, id: number) => void;
+  idCliente: number;
 }
 
 interface CCards {
@@ -83,6 +92,19 @@ interface CamposDelete {
   delteCli: (id: number) => void;
 }
 
+interface clienteCampos {
+  id?: number;
+  nome: string;
+  email: string;
+  senha?: string;
+  ativo: boolean;
+}
+
+interface modClienteCampos {
+  data: clienteCampos;
+  id: number;
+}
+
 const logoutRequest = () =>
   api
     .post(import.meta.env.VITE_API_URL + "/auth/logout", {
@@ -93,6 +115,20 @@ const logoutRequest = () =>
 const clientesRequest = () =>
   api
     .get(import.meta.env.VITE_API_URL + "/clientes", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const addCLiente = (data: clienteCampos) =>
+  api
+    .post(import.meta.env.VITE_API_URL + "/clientes", data, {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const modCLiente = (data: modClienteCampos) =>
+  api
+    .patch(import.meta.env.VITE_API_URL + "/clientes/" + data.id, data.data, {
       withCredentials: true,
     })
     .then((res) => res.data);
@@ -111,6 +147,11 @@ function App() {
   const [email_cli, setEmailCli] = useState("");
   const [status_cli, setStatusCli] = useState(true);
   const [senha_cli, setSenhaCli] = useState("");
+  const [id_cli, setIdCli] = useState(0);
+
+  const [errorName, setErrorName] = useState(false);
+  const [errorMail, setErrorMail] = useState(false);
+  const [errorSenha, setErrorSenha] = useState(false);
 
   const [openDel, setOpenDel] = useState(false);
   const [idCli, setidCli] = useState(0);
@@ -178,6 +219,66 @@ function App() {
     },
   });
 
+  const addCLi = useMutation({
+    mutationFn: addCLiente,
+    onSuccess: (success) => {
+      toaster.success({
+        title: success.data || "Sucesso",
+        description: success.data?.message || "Adicionado com sucesso",
+      });
+      clientesQuery.refetch();
+      setOpen(false);
+    },
+    onError: (error: ApiError) => {
+      console.log(error);
+      const data = error.response?.data;
+
+      let msgTitle = "Erro ao Adicionar";
+
+      if (typeof data?.erro === "string") {
+        msgTitle = data.erro;
+      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
+        msgTitle = data.erro[0].message;
+      }
+      const msgDesc = data?.error || "Descrição desconhecida";
+
+      toaster.error({
+        title: msgTitle,
+        description: msgDesc,
+      });
+    },
+  });
+
+  const modCli = useMutation({
+    mutationFn: modCLiente,
+    onSuccess: (success) => {
+      toaster.success({
+        title: success.data || "Sucesso",
+        description: success.data?.message || "Modificado com sucesso",
+      });
+      clientesQuery.refetch();
+      setOpen(false);
+    },
+    onError: (error: ApiError) => {
+      console.log(error);
+      const data = error.response?.data;
+
+      let msgTitle = "Erro ao Adicionar";
+
+      if (typeof data?.erro === "string") {
+        msgTitle = data.erro;
+      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
+        msgTitle = data.erro[0].message;
+      }
+      const msgDesc = data?.error || "Descrição desconhecida";
+
+      toaster.error({
+        title: msgTitle,
+        description: msgDesc,
+      });
+    },
+  });
+
   const cards: CCards[] = [
     {
       color: "blue",
@@ -218,20 +319,24 @@ function App() {
       atualizado_em: "",
     },
   ) {
+    setErrorName(false);
+    setErrorMail(false);
+    setErrorSenha(false);
     if (mode == "MOD") {
-      setOpen(true);
       setTitleCli("Modificar Cliente");
       setNomeCli(cliente.nome);
       setEmailCli(cliente.email);
       setStatusCli(cliente.ativo);
       setSenhaCli("");
-    } else {
+      setIdCli(cliente.id);
       setOpen(true);
+    } else {
       setTitleCli("Adicionar Cliente");
       setNomeCli("");
       setEmailCli("");
       setStatusCli(true);
       setSenhaCli("");
+      setOpen(true);
     }
   }
 
@@ -243,6 +348,14 @@ function App() {
   function delteCli(id: number) {
     deleteCLi.mutate(id);
     setOpenDel(false);
+  }
+
+  function adicionarCliente(data: clienteCampos) {
+    addCLi.mutate(data);
+  }
+
+  function modificarCliente(data: clienteCampos, id: number) {
+    modCli.mutate({ data, id });
   }
 
   return (
@@ -426,6 +539,15 @@ function App() {
         setStatusCli={setStatusCli}
         senha_cli={senha_cli}
         setSenhaCli={setSenhaCli}
+        adicionar={adicionarCliente}
+        modificar={modificarCliente}
+        errorName={errorName}
+        setErrorName={setErrorName}
+        errorMail={errorMail}
+        setErrorMail={setErrorMail}
+        errorSenha={errorSenha}
+        setErrorSenha={setErrorSenha}
+        idCliente={id_cli}
       />
       <ConfirmaDeleta
         open={openDel}
@@ -479,7 +601,68 @@ function AddCli({
   setStatusCli,
   senha_cli,
   setSenhaCli,
+  adicionar,
+  modificar,
+  errorName,
+  setErrorName,
+  errorMail,
+  setErrorMail,
+  errorSenha,
+  setErrorSenha,
+  idCliente,
 }: ModCliProps) {
+  function modCli() {
+    let data;
+    if (title_modcli == "Modificar Cliente") {
+      if (senha_cli !== "") {
+        data = {
+          nome: nome_cli,
+          email: email_cli,
+          senha: senha_cli,
+          ativo: status_cli,
+        };
+      } else {
+        data = {
+          nome: nome_cli,
+          email: email_cli,
+          ativo: status_cli,
+        };
+      }
+      modificar(data, idCliente);
+    } else {
+      setErrorName(false);
+      setErrorMail(false);
+      setErrorSenha(false);
+
+      let erro = 0;
+      if (nome_cli == "") {
+        setErrorName(true);
+        erro++;
+      }
+
+      if (email_cli == "") {
+        setErrorMail(true);
+        erro++;
+      }
+
+      if (senha_cli == "") {
+        setErrorSenha(true);
+        erro++;
+      }
+
+      if (erro > 0) {
+        return;
+      }
+
+      data = {
+        nome: nome_cli,
+        email: email_cli,
+        senha: senha_cli,
+        ativo: status_cli,
+      };
+      adicionar(data);
+    }
+  }
   return (
     <Dialog.Root
       lazyMount
@@ -495,7 +678,7 @@ function AddCli({
             </Dialog.Header>
             <Dialog.Body>
               <Flex direction="column" gap="2">
-                <Field.Root>
+                <Field.Root invalid={errorName}>
                   <Field.Label>Nome Cliente</Field.Label>
                   <Input
                     placeholder="Nome Exemplo"
@@ -504,8 +687,11 @@ function AddCli({
                       setNomeCli(e.target.value)
                     }
                   />
+                  <Field.ErrorText>
+                    Favor inserir o nome do usuario!
+                  </Field.ErrorText>
                 </Field.Root>
-                <Field.Root>
+                <Field.Root invalid={errorMail}>
                   <Field.Label>Email</Field.Label>
                   <Input
                     placeholder="me@example.com"
@@ -514,6 +700,9 @@ function AddCli({
                       setEmailCli(e.target.value)
                     }
                   />
+                  <Field.ErrorText>
+                    Favor inserir o email do usuario!
+                  </Field.ErrorText>
                 </Field.Root>
                 <Field.Root>
                   <Field.Label>Status</Field.Label>
@@ -529,7 +718,7 @@ function AddCli({
                     <Checkbox.Label>Ativo</Checkbox.Label>
                   </Checkbox.Root>
                 </Field.Root>
-                <Field.Root>
+                <Field.Root invalid={errorSenha}>
                   <Field.Label>Senha</Field.Label>
                   <PasswordInput
                     value={senha_cli}
@@ -537,6 +726,9 @@ function AddCli({
                       setSenhaCli(e.target.value)
                     }
                   />
+                  <Field.ErrorText>
+                    Favor inserir a senha do usuario!
+                  </Field.ErrorText>
                 </Field.Root>
               </Flex>
             </Dialog.Body>
@@ -544,7 +736,7 @@ function AddCli({
               <Dialog.ActionTrigger asChild>
                 <Button variant="outline">Cancelar</Button>
               </Dialog.ActionTrigger>
-              <Button>Salvar</Button>
+              <Button onClick={() => modCli()}>Salvar</Button>
             </Dialog.Footer>
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
