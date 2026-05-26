@@ -6,7 +6,7 @@ const { Pool } = pg;
 
 const pool = new Pool({
   connectionString:
-    process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/gestorDinheiro",
+    process.env.DATABASE_URL || "postgresql://postgres:root@localhost:5432/sadmi",
 });
 
 pool.on("error", (err) => {
