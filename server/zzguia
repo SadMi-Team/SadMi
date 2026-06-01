@@ -21,5 +21,24 @@ Teste rápido (PowerShell, servidor em npm run dev):
     -Body '{"email":"admin@teste.com","senha":"123456"}' -WebSession $s
   Invoke-RestMethod -Uri http://localhost:3000/clientes -WebSession $s
 
+=== CRUD /maquinas (somente cliente autenticado via cookie JWT) ===
+
+POST   /maquinas              { nome, ativo? }                 -> 201 (+ token_comunicacao gerado)
+GET    /maquinas              lista do cliente logado          -> 200
+GET    /maquinas/:id          uma máquina do cliente           -> 200 | 404
+PUT    /maquinas/:id          { nome, ativo }                  -> 200 | 404
+PATCH  /maquinas/:id          campos parciais (nome, ativo)    -> 200 | 404
+DELETE /maquinas/:id                                           -> 204 | 404
+
+Sem cookie: 401. Perfil administrador: 403.
+Teste rápido Postman/PowerShell (cliente):
+
+  $s = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+  Invoke-RestMethod -Uri http://localhost:3000/auth/login -Method POST -ContentType application/json `
+    -Body '{"email":"cliente@teste.com","senha":"123456"}' -WebSession $s
+  Invoke-RestMethod -Uri http://localhost:3000/maquinas -Method POST -ContentType application/json `
+    -Body '{"nome":"Torno CNC","ativo":true}' -WebSession $s
+  Invoke-RestMethod -Uri http://localhost:3000/maquinas -WebSession $s
+
 NPM START -- modo "produção" não Atualiza o server qnd atualizado os arquivos
 NPM RUN DEV -- modo "testes" Atualiza o server qnd atualizado os arquivos, não precisa reiniciar
