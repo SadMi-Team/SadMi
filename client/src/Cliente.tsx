@@ -7,6 +7,11 @@ import {
   SimpleGrid,
   Table,
   Status,
+  Dialog,
+  Portal,
+  Field,
+  Input,
+  CloseButton
 } from "@chakra-ui/react";
 import {
   LuLogOut,
@@ -19,6 +24,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { Toaster, toaster } from "@/components/ui/toaster";
 import { ColorModeButton } from "@/components/ui/color-mode";
+import { useState } from "react";
 
 import api from "./utils/axios";
 import CCard from "./components/CCard";
@@ -50,6 +56,15 @@ interface MaquinaCard {
   nome: string;
 }
 
+interface AddMaquina {
+  addMaquina: AddMaquinaProps;
+};
+
+interface AddMaquinaProps {
+  open: boolean;
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
 const logoutRequest = () =>
   api
     .post(import.meta.env.VITE_API_URL + "/auth/logout", {
@@ -59,6 +74,7 @@ const logoutRequest = () =>
 
 function App() {
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
 
   const logout = useMutation({
     mutationFn: logoutRequest,
@@ -200,16 +216,15 @@ function App() {
               direction="column"
             >
               <Text color="fg.info" fontWeight="semibold">
-                Gerenciar Clientes
+                Desempenho Mensal (OEE)
               </Text>
               <Text color="fg.muted" textStyle="xs">
-                Cadastre e gerencie as contas de clientes do sistema
+                Evolução da eficiencia geral do parque fabril
               </Text>
             </Flex>
           </Card.Header>
           <Card.Body color="fg.muted">
-            This is the card body. Lorem ipsum dolor sit amet, consectetur
-            adipiscing elit.
+            Placeholder grafico  Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico
           </Card.Body>
         </Card.Root>
         <Card.Root w={{ base: "100%", md: "49%" }} shadow="md">
@@ -221,16 +236,15 @@ function App() {
               direction="column"
             >
               <Text color="fg.info" fontWeight="semibold">
-                Gerenciar Clientes
+                Produção Semanal
               </Text>
               <Text color="fg.muted" textStyle="xs">
-                Cadastre e gerencie as contas de clientes do sistema
+                Peças produzidas e refugo por dia
               </Text>
             </Flex>
           </Card.Header>
           <Card.Body color="fg.muted">
-            This is the card body. Lorem ipsum dolor sit amet, consectetur
-            adipiscing elit.
+             Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico  Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico Placeholder grafico
           </Card.Body>
         </Card.Root>
       </Flex>
@@ -239,13 +253,13 @@ function App() {
           <Flex w="100%" justify="space-between" padding="2">
             <Flex direction="column">
               <Text color="fg.info" fontWeight="semibold">
-                Gerenciar Clientes
+                Maquinas Cadastradas
               </Text>
               <Text color="fg.muted" textStyle="xs">
-                Cadastre e gerencie as contas de clientes do sistema
+                Gerenciamento e monitoramento do parque fabril
               </Text>
             </Flex>
-            <Button colorPalette="blue">+ Nova Maquina</Button>
+            <Button colorPalette="blue" onClick={() => setOpen(true)}>+ Nova Maquina</Button>
           </Flex>
         </Card.Header>
         <Card.Body>
@@ -257,6 +271,7 @@ function App() {
           </SimpleGrid>
         </Card.Body>
       </Card.Root>
+      <MaquinaAdd addMaquina={{open, setOpen}}/>
     </Flex>
   );
 }
@@ -274,10 +289,10 @@ function Maquina({ nome }: MaquinaCard) {
         </Flex>
       </Card.Header>
       <Card.Body color="fg.muted">
-        <Table.Root size="sm">
+        <Table.Root size="sm" > 
           <Table.Header></Table.Header>
           <Table.Body>
-            <Table.Row>
+            <Table.Row bg="none"> 
               <Table.Cell>Status:</Table.Cell>
               <Table.Cell>
                 <Flex justify="end" w="100%">
@@ -294,7 +309,7 @@ function Maquina({ nome }: MaquinaCard) {
                 </Flex>
               </Table.Cell>
             </Table.Row>
-            <Table.Row>
+            <Table.Row bg="none">
               <Table.Cell>OEE:</Table.Cell>
               <Table.Cell>
                 <Flex justify="end" w="100%">
@@ -302,7 +317,7 @@ function Maquina({ nome }: MaquinaCard) {
                 </Flex>
               </Table.Cell>
             </Table.Row>
-            <Table.Row>
+            <Table.Row bg="none">
               <Table.Cell>1</Table.Cell>
             </Table.Row>
           </Table.Body>
@@ -310,4 +325,56 @@ function Maquina({ nome }: MaquinaCard) {
       </Card.Body>
     </Card.Root>
   );
+}
+
+function MaquinaAdd({ addMaquina }: AddMaquina) {
+  return (<Dialog.Root
+        lazyMount
+        open={addMaquina.open}
+        onOpenChange={(e: { open: boolean }) => addMaquina.setOpen(e.open)}
+      >
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Header>
+                <Dialog.Title></Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                <Flex direction="column" gap="2">
+                  <Field.Root>
+                    <Field.Label>Nome Maquina</Field.Label>
+                    <Input
+                      placeholder="Nome Exemplo"
+                    />
+                    <Field.ErrorText>
+                      Favor inserir o nome do usuario!
+                    </Field.ErrorText>
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Token Máquina</Field.Label>
+                    <Input 
+                      placeholder="Basic "
+                      disabled
+                    />
+
+                    <Field.ErrorText>
+                      Favor inserir o nome do usuario!
+                    </Field.ErrorText>
+                  </Field.Root>
+                </Flex>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Dialog.ActionTrigger asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </Dialog.ActionTrigger>
+                <Button>Adicionar Máquina</Button>
+              </Dialog.Footer>
+              <Dialog.CloseTrigger asChild>
+                <CloseButton size="sm" />
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>);
 }
