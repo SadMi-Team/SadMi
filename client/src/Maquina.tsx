@@ -3,23 +3,39 @@ import {
   Image,
   Text,
   Button,
-  Card,
-  SimpleGrid,
-  Table,
-  Status,
+  AbsoluteCenter,
+  Spinner,
   Dialog,
   Portal,
   Field,
   Input,
   CloseButton,
+  Switch,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router";
 import { Toaster, toaster } from "@/components/ui/toaster";
 import { useParams } from "react-router-dom";
-import { LuArrowLeft } from "react-icons/lu";
+import { LuArrowLeft, LuCog } from "react-icons/lu";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
+import api from "./utils/axios";
 import CCard from "./components/CCard";
+
+interface ApiError {
+  response?: {
+    data?: ApiReturn;
+  };
+}
+
+interface ApiReturn {
+  erro?: string | ApiReturnMessage[];
+  error?: string;
+}
+
+interface ApiReturnMessage {
+  message: string;
+}
 
 interface CCards {
   color: string;
@@ -29,9 +45,39 @@ interface CCards {
   subtitle: string;
 }
 
+interface MaquinaCampos {
+  ativo: boolean;
+  idMaquina: string;
+  nome: string;
+}
+
+const maquinaRequest = (id: number) =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/maquinas/" + id, {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const editMaquinasRequest = ({ ativo, idMaquina, nome }: MaquinaCampos) =>
+  api
+    .patch(
+      import.meta.env.VITE_API_URL + "/maquinas/" + idMaquina,
+      { nome, ativo },
+      {
+        withCredentials: true,
+      },
+    )
+    .then((res) => res.data);
+
 function App() {
   const { idCliente, idMaquina } = useParams();
   const navigate = useNavigate();
+
+  const maquinasQuery = useQuery({
+    queryKey: ["maquina", idCliente, idMaquina],
+    queryFn: () => maquinaRequest(Number(idMaquina)),
+    staleTime: 5 * 60 * 1000,
+  });
 
   const [page, setPage] = useState(1);
   const cards: CCards[] = [
@@ -79,6 +125,14 @@ function App() {
     }
   };
 
+  if (maquinasQuery.isFetching) {
+    return (
+      <AbsoluteCenter>
+        <Spinner />
+      </AbsoluteCenter>
+    );
+  }
+
   return (
     <Flex
       w="100%"
@@ -125,16 +179,16 @@ function App() {
 
             <Flex direction="column">
               <Text color="white" textStyle="md" fontWeight="semibold">
-                Nome Máquina
+                {maquinasQuery.data.nome}
               </Text>
               <Text color="white" textStyle="sm">
-                Área do Cliente
+                Área do Cliente/Máquina
               </Text>
             </Flex>
           </Flex>
 
           <Flex align="center" gap="2">
-            Em Operação
+            <MaquinaEdit />
           </Flex>
         </Flex>
         <Flex
@@ -236,4 +290,140 @@ function Anomalias() {
 
 function Ciclos() {
   return "d";
+}
+
+function MaquinaEdit() {
+  const [open, setOpen] = useState(false);
+  const [nome, setNome] = useState("");
+
+  const { idMaquina, idCliente } = useParams();
+
+  const maquinasQuery = useQuery({
+    queryKey: ["maquina", idCliente, idMaquina],
+    queryFn: () => maquinaRequest(Number(idMaquina)),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const [ativo, setAtivo] = useState();
+
+  const editMaq = useMutation({
+    mutationFn: editMaquinasRequest,
+    onSuccess: (success) => {
+      toaster.success({
+        title: success.data || "Sucesso",
+        description: success.data?.message || "Editado com sucesso",
+      });
+      maquinasQuery.refetch();
+      // setCopyCode(true);
+      // setCode(success.token_comunicacao);
+    },
+    onError: (error: ApiError) => {
+      console.log(error);
+      const data = error.response?.data;
+
+      let msgTitle = "Erro ao Adicionar";
+
+      if (typeof data?.erro === "string") {
+        msgTitle = data.erro;
+      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
+        msgTitle = data.erro[0].message;
+      }
+      const msgDesc = data?.error || "Descrição desconhecida";
+
+      toaster.error({
+        title: msgTitle,
+        description: msgDesc,
+      });
+    },
+  });
+
+  return (
+    <>
+      <Button
+        variant="subtle"
+        onClick={() => {
+          setNome(maquinasQuery.data.nome);
+          setAtivo(maquinasQuery.data.ativo);
+          setOpen(true);
+        }}
+      >
+        <LuCog />
+      </Button>
+      <Dialog.Root
+        lazyMount
+        open={open}
+        onOpenChange={(e: { open: boolean }) => setOpen(e.open)}
+      >
+        <Portal>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <Dialog.Content>
+              <Dialog.Header>
+                <Dialog.Title>Editar Máquina</Dialog.Title>
+              </Dialog.Header>
+              <Dialog.Body>
+                <Flex direction="column" gap="2">
+                  <Field.Root>
+                    <Field.Label>Nome Maquina</Field.Label>
+                    <Input
+                      placeholder="Nome Exemplo"
+                      value={nome}
+                      onChange={(e: { target: { value: string } }) =>
+                        setNome(e.target.value)
+                      }
+                    />
+                    <Field.ErrorText>
+                      Favor inserir o nome do usuario!
+                    </Field.ErrorText>
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Ativo</Field.Label>
+                    <Switch.Root
+                      checked={ativo}
+                      onCheckedChange={(e) => setAtivo(e.checked)}
+                    >
+                      <Switch.HiddenInput />
+                      <Switch.Control>
+                        <Switch.Thumb />
+                      </Switch.Control>
+                      <Switch.Label />
+                    </Switch.Root>
+
+                    <Field.ErrorText>
+                      Favor inserir o nome do usuario!
+                    </Field.ErrorText>
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>Token Máquina</Field.Label>
+                    <Input
+                      placeholder="Basic "
+                      readOnly
+                      value={maquinasQuery.data.token_comunicacao}
+                    />
+
+                    <Field.ErrorText>
+                      Favor inserir o nome do usuario!
+                    </Field.ErrorText>
+                  </Field.Root>
+                </Flex>
+              </Dialog.Body>
+              <Dialog.Footer>
+                <Dialog.ActionTrigger asChild>
+                  <Button variant="outline">Cancelar</Button>
+                </Dialog.ActionTrigger>
+                <Button
+                  onClick={() => editMaq.mutate({ ativo, idMaquina, nome })}
+                >
+                  Salvar
+                </Button>
+              </Dialog.Footer>
+              <Dialog.CloseTrigger asChild>
+                <CloseButton size="sm" />
+              </Dialog.CloseTrigger>
+            </Dialog.Content>
+          </Dialog.Positioner>
+        </Portal>
+      </Dialog.Root>
+    </>
+  );
 }

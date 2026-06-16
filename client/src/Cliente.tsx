@@ -481,8 +481,7 @@ function MaquinaAdd({ addMaquina, maquinaQuery }: AddMaquina) {
               </Dialog.ActionTrigger>
               <Button
                 onClick={() => {
-                  if (copyCode) {
-                  } else {
+                  if (!copyCode) {
                     addMaq.mutate({ nome, ativo });
                   }
                 }}
