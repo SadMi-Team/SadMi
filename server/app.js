@@ -13,6 +13,8 @@ import usersRouter from "./routes/users.js";
 import authRouter from "./routes/auth.js";
 import clientesRouter from "./routes/clientes.js";
 import maquinasRouter from "./routes/maquinas.js";
+import telemetryRouter from "./routes/telemetry.js";
+import summaryRouter from "./routes/summary.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +46,8 @@ app.use("/users", usersRouter);
 app.use("/auth", authRouter);
 app.use("/clientes", clientesRouter);
 app.use("/maquinas", maquinasRouter);
+app.use("/telemetry", telemetryRouter);
+app.use("/summary", summaryRouter);
 
 app.use((req, res, _next) => {
   res.status(404).json({ error: "Rota não encontrada" });
