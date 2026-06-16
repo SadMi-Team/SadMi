@@ -1,7 +1,7 @@
 import express from "express";
 
 import { query } from "../db.js";
-import { authenticateJwt, requireRole } from "../middlewares/auth.js";
+import { authenticateJwt } from "../middlewares/auth.js";
 import {
   generateTokenComunicacao,
   normalizeNome,
@@ -14,10 +14,21 @@ const router = express.Router();
 const MAQUINA_COLUMNS =
   "id, cliente_id, nome, token_comunicacao, ativo, criado_em, atualizado_em";
 
-router.use(authenticateJwt, requireRole("cliente"));
+router.use(authenticateJwt);
 
 function getClienteId(req) {
-  return Number.parseInt(String(req.user?.sub), 10);
+  if (req.user?.role === "cliente") {
+    return Number.parseInt(String(req.user?.sub), 10);
+  }
+  return null;
+}
+
+function getQueryClienteId(req) {
+  if (req.user?.role === "administrador" && req.query?.cliente_id) {
+    const clienteId = Number.parseInt(String(req.query.cliente_id), 10);
+    return Number.isInteger(clienteId) && clienteId > 0 ? clienteId : null;
+  }
+  return null;
 }
 
 function invalidIdResponse(res) {
@@ -26,7 +37,16 @@ function invalidIdResponse(res) {
 
 router.post("/", async (req, res, next) => {
   try {
-    const clienteId = getClienteId(req);
+    // permite que administrador crie máquinas para qualquer cliente passando `cliente_id` no body
+    let clienteId = getClienteId(req);
+    if (req.user?.role === "administrador") {
+      clienteId = req.body?.cliente_id ? Number.parseInt(String(req.body.cliente_id), 10) : null;
+    }
+
+    if (!clienteId) {
+      return res.status(400).json({ error: "Administradores devem informar 'cliente_id' no corpo da requisição." });
+    }
+
     const nome = normalizeNome(req.body?.nome);
     const ativo = parseAtivo(req.body?.ativo, true);
 
@@ -63,14 +83,22 @@ router.post("/", async (req, res, next) => {
 router.get("/", async (req, res, next) => {
   try {
     const clienteId = getClienteId(req);
+    const queryClienteId = getQueryClienteId(req);
 
-    const result = await query(
-      `SELECT ${MAQUINA_COLUMNS}
-       FROM maquinas
-       WHERE cliente_id = $1
-       ORDER BY id DESC`,
-      [clienteId],
-    );
+    let sql = `SELECT ${MAQUINA_COLUMNS} FROM maquinas`;
+    const values = [];
+
+    if (clienteId) {
+      sql += ` WHERE cliente_id = $1`;
+      values.push(clienteId);
+    } else if (queryClienteId) {
+      sql += ` WHERE cliente_id = $1`;
+      values.push(queryClienteId);
+    }
+
+    sql += ` ORDER BY id DESC`;
+
+    const result = await query(sql, values);
 
     return res.status(200).json(result.rows);
   } catch (err) {
@@ -86,14 +114,17 @@ router.get("/:id", async (req, res, next) => {
     }
 
     const clienteId = getClienteId(req);
+    let sql = `SELECT ${MAQUINA_COLUMNS} FROM maquinas WHERE id = $1`;
+    const values = [id];
 
-    const result = await query(
-      `SELECT ${MAQUINA_COLUMNS}
-       FROM maquinas
-       WHERE id = $1 AND cliente_id = $2
-       LIMIT 1`,
-      [id, clienteId],
-    );
+    if (clienteId) {
+      sql += ` AND cliente_id = $2`;
+      values.push(clienteId);
+    }
+
+    sql += ` LIMIT 1`;
+
+    const result = await query(sql, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Máquina não encontrada." });
@@ -122,13 +153,18 @@ router.put("/:id", async (req, res, next) => {
       });
     }
 
-    const result = await query(
-      `UPDATE maquinas
+    let sql = `UPDATE maquinas
        SET nome = $1, ativo = $2, atualizado_em = NOW()
-       WHERE id = $3 AND cliente_id = $4
-       RETURNING ${MAQUINA_COLUMNS}`,
-      [nome, ativo, id, clienteId],
-    );
+       WHERE id = $3`;
+    const values = [nome, ativo, id];
+    if (clienteId) {
+      sql += ` AND cliente_id = $4`;
+      values.push(clienteId);
+    }
+
+    sql += ` RETURNING ${MAQUINA_COLUMNS}`;
+
+    const result = await query(sql, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Máquina não encontrada." });
@@ -176,15 +212,19 @@ router.patch("/:id", async (req, res, next) => {
     }
 
     fields.push("atualizado_em = NOW()");
-    values.push(id, clienteId);
+    values.push(id);
 
-    const result = await query(
-      `UPDATE maquinas
+    let sql = `UPDATE maquinas
        SET ${fields.join(", ")}
-       WHERE id = $${values.length - 1} AND cliente_id = $${values.length}
-       RETURNING ${MAQUINA_COLUMNS}`,
-      values,
-    );
+       WHERE id = $${values.length}`;
+    if (clienteId) {
+      sql += ` AND cliente_id = $${values.length + 1}`;
+      values.push(clienteId);
+    }
+
+    sql += ` RETURNING ${MAQUINA_COLUMNS}`;
+
+    const result = await query(sql, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Máquina não encontrada." });
@@ -204,13 +244,14 @@ router.delete("/:id", async (req, res, next) => {
     }
 
     const clienteId = getClienteId(req);
+    let sql = `DELETE FROM maquinas WHERE id = $1`;
+    const values = [id];
+    if (clienteId) {
+      sql += ` AND cliente_id = $2`;
+      values.push(clienteId);
+    }
 
-    const result = await query(
-      `DELETE FROM maquinas
-       WHERE id = $1 AND cliente_id = $2
-       RETURNING id`,
-      [id, clienteId],
-    );
+    const result = await query(`${sql} RETURNING id`, values);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: "Máquina não encontrada." });
