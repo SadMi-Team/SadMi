@@ -11,6 +11,7 @@ const sadmiApi = new QueryClient();
 import Login from "@/Login.tsx";
 import Admin from "@/Admin.tsx";
 import Cliente from "@/Cliente.tsx";
+import Maquina from "@/Maquina.tsx";
 
 const router = createBrowserRouter([
   {
@@ -25,10 +26,14 @@ const router = createBrowserRouter([
     path: "/admin",
     element: <Admin />
   },
-    {
+  {
     path: "/cliente",
     element: <Cliente />
   },
+  {
+    path: "/maquina/:idCliente/:idMaquina",
+    element: <Maquina />
+  }
 ]);
 
 createRoot(document.getElementById("root")!).render(
