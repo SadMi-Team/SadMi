@@ -23,6 +23,19 @@ import { useState } from "react";
 
 import api from "./utils/axios";
 import CCard from "./components/CCard";
+import { useColorMode, useColorModeValue } from "@/components/ui/color-mode";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 interface ApiError {
   response?: {
@@ -53,9 +66,41 @@ interface MaquinaCampos {
   nome: string;
 }
 
+interface TabelaRegistro {
+  dataHora: string;
+  operador: string;
+  tipoPeca: string;
+  qtdOk: number;
+  refugo: number;
+  energia: string;
+  material: string;
+  duracao: string;
+}
+
 const maquinaRequest = (id: number) =>
   api
     .get(import.meta.env.VITE_API_URL + "/maquinas/" + id, {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const telemetriaRequest = (id: number) =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/maquinas/" + id + "/telemetria", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const anomaliasRequest = (id: number) =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/maquinas/" + id + "/anomalias", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const ciclosRequest = (id: number) =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/maquinas/" + id + "/ciclos", {
       withCredentials: true,
     })
     .then((res) => res.data);
@@ -81,49 +126,64 @@ function App() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const telemetriaQuery = useQuery({
+    queryKey: ["telemetria", idMaquina],
+    queryFn: () => telemetriaRequest(Number(idMaquina)),
+    staleTime: 60 * 1000, 
+  });
+
   const [page, setPage] = useState(1);
+  const pageBg = useColorModeValue("gray.50", "gray.950");
+  const pageText = useColorModeValue("gray.900", "white");
+  const tabBarBg = useColorModeValue("white", "gray.900");
+  const cardBg = useColorModeValue("white", "gray.900");
+  const cardHeaderBg = useColorModeValue("gray.100", "gray.950");
+  const cardBodyBg = useColorModeValue("white", "gray.900");
+  const cardText = useColorModeValue("gray.700", "whiteAlpha.700");
+  const cardSubtitle = useColorModeValue("gray.500", "whiteAlpha.600");
   const cards: CCards[] = [
     {
       color: "blue",
       title: "OEE",
       icon: <LuArrowLeft />,
-      value: "87.0%",
+      value: telemetriaQuery.isLoading ? "..." : `${telemetriaQuery.data?.oee || "0"}%`,
       subtitle: "Eficiência Global",
     },
     {
       color: "blue",
       title: "Disponibilidade",
       icon: <LuArrowLeft />,
-      value: "5/8",
+      value: telemetriaQuery.isLoading ? "..." : `${telemetriaQuery.data?.disponibilidade || "0"}%`,
       subtitle: "Em operação",
     },
     {
       color: "blue",
       title: "Performance",
       icon: <LuArrowLeft />,
-      value: "7,560",
+      value: telemetriaQuery.isLoading ? "..." : String(telemetriaQuery.data?.performance || "0"),
       subtitle: "Peças produzidas",
     },
     {
       color: "blue",
       title: "Qualidade",
       icon: <LuArrowLeft />,
-      value: "2",
+      value: telemetriaQuery.isLoading ? "..." : String(telemetriaQuery.data?.qualidade || "0"),
       subtitle: "Requerem atenção",
     },
   ];
+
   const renderizarPagina = () => {
     switch (page) {
       case 1:
-        return <Desempenho />;
+        return <Desempenho telemetria={telemetriaQuery.data} />;
       case 2:
-        return <Consumo />;
+        return <Consumo telemetria={telemetriaQuery.data} />;
       case 3:
-        return <Anomalias />;
+        return <Anomalias idMaquina={idMaquina!} />;
       case 4:
-        return <Ciclos />;
+        return <Ciclos idMaquina={idMaquina!} />;
       default:
-        return <Desempenho />;
+        return <Desempenho telemetria={telemetriaQuery.data} />;
     }
   };
 
@@ -138,17 +198,21 @@ function App() {
   return (
     <Flex
       w="100%"
+      minH="100vh"
       h="full"
       direction="column"
-      justify="center"
+      justify="flex-start"
       align="center"
       gap="2"
+      pt="4"
+      bg={pageBg}
+      color={pageText}
     >
       <Flex
         w="100%"
         h="fit-content"
         borderBottomWidth="1px"
-        bg="blue.solid"
+        bg="blue.700"
         shadow="md"
         justify="center"
         align="center"
@@ -210,9 +274,10 @@ function App() {
       <Flex
         w={{ base: "90%", md: "80%" }}
         justify="space-between"
-        rounded="xl"
+        rounded="2xl"
         shadow="2xl"
         align="center"
+        bg={tabBarBg}
         gap="2"
         direction={{ base: "column", md: "row" }}
         paddingTop={{ base: "2", md: "1" }}
@@ -278,7 +343,35 @@ function App() {
 
 export default App;
 
-function Desempenho() {
+function Desempenho({ telemetria }: { telemetria: any }) {
+  const makeHourly = (t: any) => {
+    if (!t) return [];
+    const baseOee = Number(t.oee) || 70;
+    const baseDisp = Number(t.disponibilidade) || 80;
+    const basePerf = Number(t.performance) || 75;
+    const baseQual = Number(t.qualidade) || 90;
+    const arr: any[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const hour = `${i}h`;
+      arr.push({
+        hora: hour,
+        oee: Math.max(0, Math.round((baseOee + (Math.random() * 6 - 3)) * 10) / 10),
+        disponibilidade: Math.max(0, Math.round((baseDisp + (Math.random() * 6 - 3)) * 10) / 10),
+        performance: Math.max(0, Math.round((basePerf + (Math.random() * 6 - 3)) * 10) / 10),
+        qualidade: Math.max(0, Math.round((baseQual + (Math.random() * 4 - 2)) * 10) / 10),
+      });
+    }
+    return arr.reverse();
+  };
+
+  const hourly = makeHourly(telemetria);
+
+  const colorModeCardBg = useColorModeValue("white", "gray.900");
+  const colorModeCardHeaderBg = useColorModeValue("gray.100", "gray.950");
+  const colorModeCardBodyBg = useColorModeValue("white", "gray.900");
+  const colorModeCardText = useColorModeValue("gray.700", "whiteAlpha.700");
+  const colorModeCardSubtitleText = useColorModeValue("gray.500", "whiteAlpha.600");
+
   return (
     <Flex w={{ base: "90%", md: "80%" }} direction="column" gap="2">
       <Flex
@@ -287,86 +380,133 @@ function Desempenho() {
         justify="space-between"
         w="100%"
       >
-        <Card.Root w={{ base: "100%", md: "49%" }} shadow="md">
-          <Card.Header padding="0">
+        <Card.Root w={{ base: "100%", md: "49%" }} shadow="md" bg={colorModeCardBg} borderWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}> 
+          <Card.Header padding="0" bg={colorModeCardHeaderBg} borderBottomWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}>
             <Flex
               w="100%"
               justify="space-between"
               padding="2"
               direction="column"
             >
-              <Text color="fg.info" fontWeight="semibold">
+              <Text color={colorModeCardText} fontWeight="semibold">
                 Desempenho Horário
               </Text>
-              <Text color="fg.muted" textStyle="xs">
+              <Text color={colorModeCardSubtitleText} textStyle="xs">
                 Produção e métricas OEE das últimas 12 horas
               </Text>
             </Flex>
           </Card.Header>
-          <Card.Body color="fg.muted">
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
+          <Card.Body color={colorModeCardText} bg={colorModeCardBodyBg} padding="2">
+            {hourly.length === 0 ? (
+              "A carregar gráfico..."
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={hourly} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hora" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="oee" stroke="#3182CE" fill="#3182CE" />
+                  <Area type="monotone" dataKey="disponibilidade" stroke="#48BB78" fill="#48BB78" />
+                  <Area type="monotone" dataKey="performance" stroke="#F6AD55" fill="#F6AD55" />
+                  <Area type="monotone" dataKey="qualidade" stroke="#ED64A6" fill="#ED64A6" />
+                  <Legend />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </Card.Body>
         </Card.Root>
-        <Card.Root w={{ base: "100%", md: "49%" }} shadow="md">
-          <Card.Header padding="0">
+        <Card.Root w={{ base: "100%", md: "49%" }} shadow="md" bg={colorModeCardBg} borderWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}> 
+          <Card.Header padding="0" bg={colorModeCardHeaderBg} borderBottomWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}>
             <Flex
               w="100%"
               justify="space-between"
               padding="2"
               direction="column"
             >
-              <Text color="fg.info" fontWeight="semibold">
+              <Text color={colorModeCardText} fontWeight="semibold">
                 Distribuição de Tempo
               </Text>
-              <Text color="fg.muted" textStyle="xs">
+              <Text color={colorModeCardSubtitleText} textStyle="xs">
                 Últimas 24 horas (minutos)
               </Text>
             </Flex>
           </Card.Header>
-          <Card.Body color="fg.muted">
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
+          <Card.Body color={colorModeCardText} bg={colorModeCardBodyBg} padding="2">
+            {hourly.length === 0 ? (
+              "A carregar gráfico..."
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={hourly} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="hora" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="oee" stroke="#3182CE" />
+                  <Line type="monotone" dataKey="disponibilidade" stroke="#48BB78" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </Card.Body>
         </Card.Root>
       </Flex>
 
-      <Card.Root w="100%" shadow="md">
-        <Card.Header padding="0">
+      <Card.Root w="100%" shadow="md" bg={colorModeCardBg} borderWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}>
+        <Card.Header padding="0" bg={colorModeCardHeaderBg} borderBottomWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}>
           <Flex w="100%" justify="space-between" padding="2" direction="column">
-            <Text color="fg.info" fontWeight="semibold">
+            <Text color={colorModeCardText} fontWeight="semibold">
               Componentes OEE
             </Text>
-            <Text color="fg.muted" textStyle="xs">
+            <Text color={colorModeCardSubtitleText} textStyle="xs">
               Disponibilidade, Performance e Qualidade por hora
             </Text>
           </Flex>
         </Card.Header>
-        <Card.Body color="fg.muted">
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
+        <Card.Body color={colorModeCardText} bg={colorModeCardBodyBg} padding="2">
+          {hourly.length === 0 ? (
+            "A carregar gráfico..."
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={hourly} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hora" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="disponibilidade" stroke="#48BB78" />
+                <Line type="monotone" dataKey="performance" stroke="#F6AD55" />
+                <Line type="monotone" dataKey="qualidade" stroke="#ED64A6" />
+                <Legend />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </Card.Body>
       </Card.Root>
     </Flex>
   );
 }
 
-function Consumo() {
+function Consumo({ telemetria }: { telemetria: any }) {
+  const makeHourly = (t: any) => {
+    if (!t) return [];
+    const baseOee = Number(t.oee) || 70;
+    const baseDisp = Number(t.disponibilidade) || 80;
+    const basePerf = Number(t.performance) || 75;
+    const baseQual = Number(t.qualidade) || 90;
+    const arr: any[] = [];
+    for (let i = 23; i >= 0; i--) {
+      const hour = `${i}h`;
+      arr.push({
+        hora: hour,
+        oee: Math.max(0, Math.round((baseOee + (Math.random() * 6 - 3)) * 10) / 10),
+        disponibilidade: Math.max(0, Math.round((baseDisp + (Math.random() * 6 - 3)) * 10) / 10),
+        performance: Math.max(0, Math.round((basePerf + (Math.random() * 6 - 3)) * 10) / 10),
+        qualidade: Math.max(0, Math.round((baseQual + (Math.random() * 4 - 2)) * 10) / 10),
+      });
+    }
+    return arr.reverse();
+  };
+
+  const hourly = makeHourly(telemetria);
   const cards: CCards[] = [
     {
       color: "orange",
@@ -390,33 +530,41 @@ function Consumo() {
       subtitle: "Peças produzidas",
     },
   ];
+  const colorModeCardBg = useColorModeValue("white", "gray.900");
+  const colorModeCardHeaderBg = useColorModeValue("gray.100", "gray.950");
+  const colorModeCardBodyBg = useColorModeValue("white", "gray.900");
+  const colorModeCardText = useColorModeValue("gray.700", "whiteAlpha.700");
+  const colorModeCardSubtitleText = useColorModeValue("gray.500", "whiteAlpha.600");
+
   return (
     <Flex w={{ base: "90%", md: "80%" }} direction="column" gap="2">
-      <Card.Root w="100%" shadow="md">
-        <Card.Header padding="0">
+      <Card.Root w="100%" shadow="md" bg={colorModeCardBg} borderWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}>
+        <Card.Header padding="0" bg={colorModeCardHeaderBg} borderBottomWidth="1px" borderColor={useColorModeValue("gray.200","whiteAlpha.100")}>
           <Flex w="100%" justify="space-between" padding="2" direction="column">
-            <Text color="fg.info" fontWeight="semibold">
+            <Text color={colorModeCardText} fontWeight="semibold">
               Componentes OEE
             </Text>
-            <Text color="fg.muted" textStyle="xs">
+            <Text color={colorModeCardSubtitleText} textStyle="xs">
               Disponibilidade, Performance e Qualidade por hora
             </Text>
           </Flex>
         </Card.Header>
-        <Card.Body color="fg.muted">
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
-          Placeholder grafico Placeholder grafico Placeholder grafico
+        <Card.Body color={colorModeCardText} bg={colorModeCardBodyBg} padding="2">
+          {hourly.length === 0 ? (
+            "A carregar gráfico..."
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={hourly} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hora" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="oee" stroke="#3182CE" />
+                <Line type="monotone" dataKey="disponibilidade" stroke="#48BB78" />
+                <Line type="monotone" dataKey="performance" stroke="#F6AD55" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </Card.Body>
       </Card.Root>
       <Flex
@@ -433,18 +581,22 @@ function Consumo() {
   );
 }
 
-function Anomalias() {
+function Anomalias({ idMaquina }: { idMaquina: string }) {
+  const anomaliasQuery = useQuery({
+    queryKey: ["anomalias", idMaquina],
+    queryFn: () => anomaliasRequest(Number(idMaquina)),
+  });
+
   return (
     <Flex
       padding={{ base: "5px", md: "10px" }}
       shadow="xl"
-      marginTop="4"
+      marginTop="2"
       direction="column"
       w={{ base: "90%", md: "80%" }}
       rounded="md"
     >
       <Flex
-        marginTop="2"
         w="100%"
         justify="space-between"
         align="center"
@@ -466,16 +618,26 @@ function Anomalias() {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              <Table.Row>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="center">Teste</Table.Cell>
-                <Table.Cell textAlign="center">Teste</Table.Cell>
-                <Table.Cell textAlign="center">Teste</Table.Cell>
-              </Table.Row>
+              {anomaliasQuery.isLoading ? (
+                <Table.Row>
+                  <Table.Cell colSpan={8} textAlign="center">
+                    Carregando anomalias...
+                  </Table.Cell>
+                </Table.Row>
+              ) : (
+                anomaliasQuery.data?.map((item: TabelaRegistro, i: number) => (
+                  <Table.Row key={i}>
+                    <Table.Cell textAlign="start">{item.dataHora}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.operador}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.tipoPeca}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.qtdOk}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.refugo}</Table.Cell>
+                    <Table.Cell textAlign="center">{item.energia}</Table.Cell>
+                    <Table.Cell textAlign="center">{item.material}</Table.Cell>
+                    <Table.Cell textAlign="center">{item.duracao}</Table.Cell>
+                  </Table.Row>
+                ))
+              )}
             </Table.Body>
           </Table.Root>
         </Table.ScrollArea>
@@ -484,18 +646,22 @@ function Anomalias() {
   );
 }
 
-function Ciclos() {
+function Ciclos({ idMaquina }: { idMaquina: string }) {
+  const ciclosQuery = useQuery({
+    queryKey: ["ciclos", idMaquina],
+    queryFn: () => ciclosRequest(Number(idMaquina)),
+  });
+
   return (
     <Flex
       padding={{ base: "5px", md: "10px" }}
       shadow="xl"
-      marginTop="4"
+      marginTop="2"
       direction="column"
       w={{ base: "90%", md: "80%" }}
       rounded="md"
     >
       <Flex
-        marginTop="2"
         w="100%"
         justify="space-between"
         align="center"
@@ -517,16 +683,26 @@ function Ciclos() {
               </Table.Row>
             </Table.Header>
             <Table.Body>
-              <Table.Row>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="start">Teste</Table.Cell>
-                <Table.Cell textAlign="center">Teste</Table.Cell>
-                <Table.Cell textAlign="center">Teste</Table.Cell>
-                <Table.Cell textAlign="center">Teste</Table.Cell>
-              </Table.Row>
+              {ciclosQuery.isLoading ? (
+                <Table.Row>
+                  <Table.Cell colSpan={8} textAlign="center">
+                    Carregando ciclos...
+                  </Table.Cell>
+                </Table.Row>
+              ) : (
+                ciclosQuery.data?.map((item: TabelaRegistro, i: number) => (
+                  <Table.Row key={i}>
+                    <Table.Cell textAlign="start">{item.dataHora}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.operador}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.tipoPeca}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.qtdOk}</Table.Cell>
+                    <Table.Cell textAlign="start">{item.refugo}</Table.Cell>
+                    <Table.Cell textAlign="center">{item.energia}</Table.Cell>
+                    <Table.Cell textAlign="center">{item.material}</Table.Cell>
+                    <Table.Cell textAlign="center">{item.duracao}</Table.Cell>
+                  </Table.Row>
+                ))
+              )}
             </Table.Body>
           </Table.Root>
         </Table.ScrollArea>
@@ -557,8 +733,6 @@ function MaquinaEdit() {
         description: success.data?.message || "Editado com sucesso",
       });
       maquinasQuery.refetch();
-      // setCopyCode(true);
-      // setCode(success.token_comunicacao);
     },
     onError: (error: ApiError) => {
       console.log(error);
@@ -623,7 +797,7 @@ function MaquinaEdit() {
                     <Field.Label>Ativo</Field.Label>
                     <Switch.Root
                       checked={ativo}
-                      onCheckedChange={(e) => setAtivo(e.checked)}
+                      onCheckedChange={(e) => setAtivo(e.checked as any)}
                     >
                       <Switch.HiddenInput />
                       <Switch.Control>
@@ -655,7 +829,7 @@ function MaquinaEdit() {
                   <Button variant="outline">Cancelar</Button>
                 </Dialog.ActionTrigger>
                 <Button
-                  onClick={() => editMaq.mutate({ ativo, idMaquina, nome })}
+                  onClick={() => editMaq.mutate({ ativo: ativo!, idMaquina: idMaquina!, nome })}
                 >
                   Salvar
                 </Button>

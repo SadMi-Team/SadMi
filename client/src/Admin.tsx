@@ -13,7 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Toaster, toaster } from "@/components/ui/toaster";
-import { useMutation, useQuery } from "@tanstack/react-query";  
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { useState } from "react";
 import {
@@ -26,6 +26,8 @@ import {
 } from "react-icons/lu";
 
 import api from "@/utils/axios";
+import { clearStoredUser } from "./utils/auth";
+import { ColorModeButton } from "@/components/ui/color-mode";
 import CCard from "./components/CCard";
 
 interface ApiError {
@@ -105,6 +107,11 @@ interface modClienteCampos {
   id: number;
 }
 
+interface AdminSumarizacaoDados {
+  totalMaquinas: number;
+  taxaUtilizacao: string;
+}
+
 const logoutRequest = () =>
   api
     .post(import.meta.env.VITE_API_URL + "/auth/logout", {
@@ -115,6 +122,13 @@ const logoutRequest = () =>
 const clientesRequest = () =>
   api
     .get(import.meta.env.VITE_API_URL + "/clientes", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const adminSumarizacaoRequest = () =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/admin/sumarizacao", {
       withCredentials: true,
     })
     .then((res) => res.data);
@@ -140,6 +154,38 @@ const deleteCLiente = (id: number) =>
     })
     .then((res) => res.data);
 
+// Helpers to normalize backend responses for notifications
+function resolveSuccessTitle(success: any) {
+  if (!success) return "Sucesso";
+  if (typeof success === "string") return success;
+  if (success.message && typeof success.message === "string") return success.message;
+  if (success.data) {
+    if (typeof success.data === "string") return success.data;
+    if (success.data.message) return success.data.message;
+  }
+  return "Sucesso";
+}
+
+function resolveSuccessDescription(success: any) {
+  if (!success) return "";
+  if (success.description) return success.description;
+  if (success.message && typeof success.message === "string") return success.message;
+  if (success.data && typeof success.data === "object" && success.data.message) return success.data.message;
+  return "";
+}
+
+function resolveErrorPayload(error: any) {
+  const data = error?.response?.data;
+  if (!data) return { title: "Erro", description: error?.message || "Descrição desconhecida" };
+  const title = typeof data?.erro === "string"
+    ? data.erro
+    : Array.isArray(data?.erro) && data.erro.length
+      ? data.erro[0].message
+      : (data.message || "Erro");
+  const description = data?.error || data?.message || "Descrição desconhecida";
+  return { title, description };
+}
+
 function App() {
   const [open, setOpen] = useState(false);
   const [title_cli, setTitleCli] = useState("");
@@ -164,118 +210,68 @@ function App() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const adminSumQuery = useQuery({
+    queryKey: ["adminSumarizacao"],
+    queryFn: adminSumarizacaoRequest,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const logout = useMutation({
     mutationFn: logoutRequest,
     onSuccess: (success) => {
-      console.log(success);
+      clearStoredUser();
+      const title = resolveSuccessTitle(success);
+      const description = resolveSuccessDescription(success);
+      if (title || description) toaster.success({ title, description });
       navigate("/login");
     },
     onError: (error: ApiError) => {
-      console.log(error);
-      const data = error.response?.data;
-
-      let msgTitle = "Erro";
-
-      if (typeof data?.erro === "string") {
-        msgTitle = data.erro;
-      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
-        msgTitle = data.erro[0].message;
-      }
-      const msgDesc = data?.error || "Descrição desconhecida";
-
-      toaster.error({
-        title: msgTitle,
-        description: msgDesc,
-      });
+      const payload = resolveErrorPayload(error);
+      toaster.error(payload);
     },
   });
 
   const deleteCLi = useMutation({
     mutationFn: deleteCLiente,
     onSuccess: (success) => {
-      toaster.success({
-        title: success.data || "Sucesso",
-        description: success.data?.message || "Deletado com sucesso",
-      });
+      const title = resolveSuccessTitle(success) || "Sucesso";
+      const description = resolveSuccessDescription(success) || "Deletado com sucesso";
+      toaster.success({ title, description });
       clientesQuery.refetch();
     },
     onError: (error: ApiError) => {
-      console.log(error);
-      const data = error.response?.data;
-
-      let msgTitle = "Erro";
-
-      if (typeof data?.erro === "string") {
-        msgTitle = data.erro;
-      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
-        msgTitle = data.erro[0].message;
-      }
-      const msgDesc = data?.error || "Descrição desconhecida";
-
-      toaster.error({
-        title: msgTitle,
-        description: msgDesc,
-      });
+      const payload = resolveErrorPayload(error);
+      toaster.error(payload);
     },
   });
 
   const addCLi = useMutation({
     mutationFn: addCLiente,
     onSuccess: (success) => {
-      toaster.success({
-        title: success.data || "Sucesso",
-        description: success.data?.message || "Adicionado com sucesso",
-      });
+      const title = resolveSuccessTitle(success) || "Sucesso";
+      const description = resolveSuccessDescription(success) || "Adicionado com sucesso";
+      toaster.success({ title, description });
       clientesQuery.refetch();
       setOpen(false);
     },
     onError: (error: ApiError) => {
-      console.log(error);
-      const data = error.response?.data;
-
-      let msgTitle = "Erro ao Adicionar";
-
-      if (typeof data?.erro === "string") {
-        msgTitle = data.erro;
-      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
-        msgTitle = data.erro[0].message;
-      }
-      const msgDesc = data?.error || "Descrição desconhecida";
-
-      toaster.error({
-        title: msgTitle,
-        description: msgDesc,
-      });
+      const payload = resolveErrorPayload(error);
+      toaster.error(payload);
     },
   });
 
   const modCli = useMutation({
     mutationFn: modCLiente,
     onSuccess: (success) => {
-      toaster.success({
-        title: success.data || "Sucesso",
-        description: success.data?.message || "Modificado com sucesso",
-      });
+      const title = resolveSuccessTitle(success) || "Sucesso";
+      const description = resolveSuccessDescription(success) || "Modificado com sucesso";
+      toaster.success({ title, description });
       clientesQuery.refetch();
       setOpen(false);
     },
     onError: (error: ApiError) => {
-      console.log(error);
-      const data = error.response?.data;
-
-      let msgTitle = "Erro ao Adicionar";
-
-      if (typeof data?.erro === "string") {
-        msgTitle = data.erro;
-      } else if (Array.isArray(data?.erro) && data.erro.length > 0) {
-        msgTitle = data.erro[0].message;
-      }
-      const msgDesc = data?.error || "Descrição desconhecida";
-
-      toaster.error({
-        title: msgTitle,
-        description: msgDesc,
-      });
+      const payload = resolveErrorPayload(error);
+      toaster.error(payload);
     },
   });
 
@@ -284,9 +280,9 @@ function App() {
       color: "blue",
       title: "Total de Clientes",
       icon: <LuUsers />,
-      value: clientesQuery.isLoading ? 0 : clientesQuery.data.length,
+      value: clientesQuery.isLoading ? "0" : clientesQuery.data.length.toString(),
       subtitle: clientesQuery.isLoading
-        ? "0"
+        ? "0 Ativos"
         : String(
             clientesQuery.data.filter((cliente: CamposCliente) => cliente.ativo)
               .length,
@@ -296,14 +292,14 @@ function App() {
       color: "green",
       title: "Maquinas Cadastradas",
       icon: <LuBuilding2 />,
-      value: "26",
+      value: adminSumQuery.isLoading ? "..." : String(adminSumQuery.data?.totalMaquinas || "0"),
       subtitle: "Em todos os clientes",
     },
     {
       color: "red",
       title: "Taxa de Utilização",
       icon: <LuTrendingUp />,
-      value: "87.3%",
+      value: adminSumQuery.isLoading ? "..." : `${adminSumQuery.data?.taxaUtilizacao || "0"}%`,
       subtitle: "Média global",
     },
   ];
@@ -460,7 +456,7 @@ function App() {
               </Table.Header>
               <Table.Body>
                 {clientesQuery.isLoading
-                  ? "Carregando..."
+                  ? <Table.Row><Table.Cell colSpan={6} textAlign="center">Carregando...</Table.Cell></Table.Row>
                   : clientesQuery.data.map((cliente: CamposCliente) => (
                       <Table.Row key={cliente.id}>
                         <Table.Cell textAlign="start">

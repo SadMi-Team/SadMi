@@ -14,6 +14,16 @@ import {
   CloseButton,
 } from "@chakra-ui/react";
 import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+} from "recharts";
+import {
   LuLogOut,
   LuActivity,
   LuCircleCheck,
@@ -29,7 +39,9 @@ import { CopyToClipboard } from "react-copy-to-clipboard";
 import Tilt from "react-parallax-tilt";
 
 import api from "./utils/axios";
+import { clearStoredUser } from "./utils/auth";
 import CCard from "./components/CCard";
+
 interface CCards {
   color: string;
   title: string;
@@ -78,6 +90,15 @@ interface MaquinasAdd {
   ativo: boolean;
 }
 
+interface ClienteSumarizacaoDados {
+  oeeMedio: string;
+  maquinasAtivas: number;
+  producaoSemanal: number;
+  alertas: number;
+  historicoOee: any[];
+  historicoProducao: any[];
+}
+
 const logoutRequest = () =>
   api
     .post(import.meta.env.VITE_API_URL + "/auth/logout", {
@@ -88,6 +109,13 @@ const logoutRequest = () =>
 const maquinasRequest = () =>
   api
     .get(import.meta.env.VITE_API_URL + "/maquinas", {
+      withCredentials: true,
+    })
+    .then((res) => res.data);
+
+const clienteSumarizacaoRequest = () =>
+  api
+    .get(import.meta.env.VITE_API_URL + "/cliente/sumarizacao", {
       withCredentials: true,
     })
     .then((res) => res.data);
@@ -106,6 +134,7 @@ function App() {
   const logout = useMutation({
     mutationFn: logoutRequest,
     onSuccess: (success) => {
+      clearStoredUser();
       console.log(success);
       navigate("/login");
     },
@@ -135,33 +164,39 @@ function App() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const sumClienteQuery = useQuery({
+    queryKey: ["clienteSumarizacao"],
+    queryFn: clienteSumarizacaoRequest,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const cards: CCards[] = [
     {
       color: "blue",
       title: "OEE Médio",
       icon: <LuActivity />,
-      value: "87.0%",
+      value: sumClienteQuery.isLoading ? "..." : `${sumClienteQuery.data?.oeeMedio || "0"}%`,
       subtitle: "Eficiência Global",
     },
     {
       color: "green",
       title: "Máquinas Ativas",
       icon: <LuCircleCheck />,
-      value: "5/8",
+      value: sumClienteQuery.isLoading ? "..." : `${sumClienteQuery.data?.maquinasAtivas || "0"}/${maquinasQuery.data?.length || "0"}`,
       subtitle: "Em operação",
     },
     {
       color: "purple",
       title: "Produção Semanal",
       icon: <LuPackage />,
-      value: "7,560",
+      value: sumClienteQuery.isLoading ? "..." : String(sumClienteQuery.data?.producaoSemanal || "0"),
       subtitle: "Peças produzidas",
     },
     {
       color: "yellow",
       title: "Alertas",
       icon: <LuTriangleAlert />,
-      value: "2",
+      value: sumClienteQuery.isLoading ? "..." : String(sumClienteQuery.data?.alertas || "0"),
       subtitle: "Requerem atenção",
     },
   ];
@@ -258,10 +293,19 @@ function App() {
             </Flex>
           </Card.Header>
           <Card.Body color="fg.muted">
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
+            {sumClienteQuery.isLoading ? (
+              "A carregar gráfico..."
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={sumClienteQuery.data?.historicoOee || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="data" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="oee" stroke="#3182CE" fill="#3182CE" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </Card.Body>
         </Card.Root>
         <Card.Root w={{ base: "100%", md: "49%" }} shadow="md">
@@ -281,10 +325,21 @@ function App() {
             </Flex>
           </Card.Header>
           <Card.Body color="fg.muted">
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
-            Placeholder grafico Placeholder grafico Placeholder grafico
+            {sumClienteQuery.isLoading ? (
+              "A carregar gráfico..."
+            ) : (
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={sumClienteQuery.data?.historicoProducao || []}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="dia" />
+                  <YAxis />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="produzidas" stroke="#38A169" fill="#38A169" />
+                  <Area type="monotone" dataKey="refugo" stroke="#E53E3E" fill="#E53E3E" />
+                  <Legend />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </Card.Body>
         </Card.Root>
       </Flex>
