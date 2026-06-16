@@ -11,6 +11,8 @@ import {
   Input,
   CloseButton,
   Switch,
+  Table,
+  Card,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router";
 import { Toaster, toaster } from "@/components/ui/toaster";
@@ -70,11 +72,11 @@ const editMaquinasRequest = ({ ativo, idMaquina, nome }: MaquinaCampos) =>
     .then((res) => res.data);
 
 function App() {
-  const { idCliente, idMaquina } = useParams();
+  const { idMaquina } = useParams();
   const navigate = useNavigate();
 
   const maquinasQuery = useQuery({
-    queryKey: ["maquina", idCliente, idMaquina],
+    queryKey: ["maquina", idMaquina],
     queryFn: () => maquinaRequest(Number(idMaquina)),
     staleTime: 5 * 60 * 1000,
   });
@@ -277,29 +279,270 @@ function App() {
 export default App;
 
 function Desempenho() {
-  return "a";
+  return (
+    <Flex w={{ base: "90%", md: "80%" }} direction="column" gap="2">
+      <Flex
+        direction={{ base: "column", md: "row" }}
+        gap="2"
+        justify="space-between"
+        w="100%"
+      >
+        <Card.Root w={{ base: "100%", md: "49%" }} shadow="md">
+          <Card.Header padding="0">
+            <Flex
+              w="100%"
+              justify="space-between"
+              padding="2"
+              direction="column"
+            >
+              <Text color="fg.info" fontWeight="semibold">
+                Desempenho Horário
+              </Text>
+              <Text color="fg.muted" textStyle="xs">
+                Produção e métricas OEE das últimas 12 horas
+              </Text>
+            </Flex>
+          </Card.Header>
+          <Card.Body color="fg.muted">
+            Placeholder grafico Placeholder grafico Placeholder grafico
+            Placeholder grafico Placeholder grafico Placeholder grafico
+            Placeholder grafico Placeholder grafico Placeholder grafico
+            Placeholder grafico Placeholder grafico Placeholder grafico
+          </Card.Body>
+        </Card.Root>
+        <Card.Root w={{ base: "100%", md: "49%" }} shadow="md">
+          <Card.Header padding="0">
+            <Flex
+              w="100%"
+              justify="space-between"
+              padding="2"
+              direction="column"
+            >
+              <Text color="fg.info" fontWeight="semibold">
+                Distribuição de Tempo
+              </Text>
+              <Text color="fg.muted" textStyle="xs">
+                Últimas 24 horas (minutos)
+              </Text>
+            </Flex>
+          </Card.Header>
+          <Card.Body color="fg.muted">
+            Placeholder grafico Placeholder grafico Placeholder grafico
+            Placeholder grafico Placeholder grafico Placeholder grafico
+            Placeholder grafico Placeholder grafico Placeholder grafico
+            Placeholder grafico Placeholder grafico Placeholder grafico
+          </Card.Body>
+        </Card.Root>
+      </Flex>
+
+      <Card.Root w="100%" shadow="md">
+        <Card.Header padding="0">
+          <Flex w="100%" justify="space-between" padding="2" direction="column">
+            <Text color="fg.info" fontWeight="semibold">
+              Componentes OEE
+            </Text>
+            <Text color="fg.muted" textStyle="xs">
+              Disponibilidade, Performance e Qualidade por hora
+            </Text>
+          </Flex>
+        </Card.Header>
+        <Card.Body color="fg.muted">
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+        </Card.Body>
+      </Card.Root>
+    </Flex>
+  );
 }
 
 function Consumo() {
-  return "b";
+  const cards: CCards[] = [
+    {
+      color: "orange",
+      title: "OEE",
+      icon: <LuArrowLeft />,
+      value: "87.0%",
+      subtitle: "Eficiência Global",
+    },
+    {
+      color: "blue",
+      title: "Disponibilidade",
+      icon: <LuArrowLeft />,
+      value: "5/8",
+      subtitle: "Em operação",
+    },
+    {
+      color: "green",
+      title: "Performance",
+      icon: <LuArrowLeft />,
+      value: "7,560",
+      subtitle: "Peças produzidas",
+    },
+  ];
+  return (
+    <Flex w={{ base: "90%", md: "80%" }} direction="column" gap="2">
+      <Card.Root w="100%" shadow="md">
+        <Card.Header padding="0">
+          <Flex w="100%" justify="space-between" padding="2" direction="column">
+            <Text color="fg.info" fontWeight="semibold">
+              Componentes OEE
+            </Text>
+            <Text color="fg.muted" textStyle="xs">
+              Disponibilidade, Performance e Qualidade por hora
+            </Text>
+          </Flex>
+        </Card.Header>
+        <Card.Body color="fg.muted">
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+          Placeholder grafico Placeholder grafico Placeholder grafico
+        </Card.Body>
+      </Card.Root>
+      <Flex
+        direction={{ base: "column", md: "row" }}
+        gap="2"
+        justify="space-between"
+        w="100%"
+      >
+        {cards.map((card: CCards, index: number) => (
+          <CCard {...card} key={index} />
+        ))}
+      </Flex>
+    </Flex>
+  );
 }
 
 function Anomalias() {
-  return "c";
+  return (
+    <Flex
+      padding={{ base: "5px", md: "10px" }}
+      shadow="xl"
+      marginTop="4"
+      direction="column"
+      w={{ base: "90%", md: "80%" }}
+      rounded="md"
+    >
+      <Flex
+        marginTop="2"
+        w="100%"
+        justify="space-between"
+        align="center"
+        gap="2"
+        direction={{ base: "column", md: "row" }}
+      >
+        <Table.ScrollArea borderWidth="1px" w="100%">
+          <Table.Root size="sm">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Data/Hora</Table.ColumnHeader>
+                <Table.ColumnHeader>Operador</Table.ColumnHeader>
+                <Table.ColumnHeader>Tipo de Peça</Table.ColumnHeader>
+                <Table.ColumnHeader>Qtd. OK</Table.ColumnHeader>
+                <Table.ColumnHeader>Refugo</Table.ColumnHeader>
+                <Table.ColumnHeader>Energia (kWh)</Table.ColumnHeader>
+                <Table.ColumnHeader>Material (kg)</Table.ColumnHeader>
+                <Table.ColumnHeader>Duração (min)</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              <Table.Row>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="center">Teste</Table.Cell>
+                <Table.Cell textAlign="center">Teste</Table.Cell>
+                <Table.Cell textAlign="center">Teste</Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
+      </Flex>
+    </Flex>
+  );
 }
 
 function Ciclos() {
-  return "d";
+  return (
+    <Flex
+      padding={{ base: "5px", md: "10px" }}
+      shadow="xl"
+      marginTop="4"
+      direction="column"
+      w={{ base: "90%", md: "80%" }}
+      rounded="md"
+    >
+      <Flex
+        marginTop="2"
+        w="100%"
+        justify="space-between"
+        align="center"
+        gap="2"
+        direction={{ base: "column", md: "row" }}
+      >
+        <Table.ScrollArea borderWidth="1px" w="100%">
+          <Table.Root size="sm">
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Data/Hora</Table.ColumnHeader>
+                <Table.ColumnHeader>Operador</Table.ColumnHeader>
+                <Table.ColumnHeader>Tipo de Peça</Table.ColumnHeader>
+                <Table.ColumnHeader>Qtd. OK</Table.ColumnHeader>
+                <Table.ColumnHeader>Refugo</Table.ColumnHeader>
+                <Table.ColumnHeader>Energia (kWh)</Table.ColumnHeader>
+                <Table.ColumnHeader>Material (kg)</Table.ColumnHeader>
+                <Table.ColumnHeader>Duração (min)</Table.ColumnHeader>
+              </Table.Row>
+            </Table.Header>
+            <Table.Body>
+              <Table.Row>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="start">Teste</Table.Cell>
+                <Table.Cell textAlign="center">Teste</Table.Cell>
+                <Table.Cell textAlign="center">Teste</Table.Cell>
+                <Table.Cell textAlign="center">Teste</Table.Cell>
+              </Table.Row>
+            </Table.Body>
+          </Table.Root>
+        </Table.ScrollArea>
+      </Flex>
+    </Flex>
+  );
 }
 
 function MaquinaEdit() {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
 
-  const { idMaquina, idCliente } = useParams();
+  const { idMaquina } = useParams();
 
   const maquinasQuery = useQuery({
-    queryKey: ["maquina", idCliente, idMaquina],
+    queryKey: ["maquina", idMaquina],
     queryFn: () => maquinaRequest(Number(idMaquina)),
     staleTime: 5 * 60 * 1000,
   });

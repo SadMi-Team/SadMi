@@ -337,7 +337,7 @@ function Maquina({
     <Tilt tiltEnable={false} scale={1.03} transitionSpeed={2500}>
       <Card.Root
         size="sm"
-        onClick={() => navigate("/maquina/" + cliente_id + "/" + id)}
+        onClick={() => navigate("/maquina/" + id)}
         cursor="pointer"
       >
         <Card.Header>

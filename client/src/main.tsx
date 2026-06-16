@@ -24,16 +24,16 @@ const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    element: <Admin />
+    element: <Admin />,
   },
   {
     path: "/cliente",
-    element: <Cliente />
+    element: <Cliente />,
   },
   {
-    path: "/maquina/:idCliente/:idMaquina",
-    element: <Maquina />
-  }
+    path: "/maquina/:idMaquina",
+    element: <Maquina />,
+  },
 ]);
 
 createRoot(document.getElementById("root")!).render(
